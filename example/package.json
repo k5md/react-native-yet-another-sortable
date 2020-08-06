@@ -8,9 +8,10 @@
     "start": "react-native start"
   },
   "dependencies": {
+    "@react-native-community/slider": "^3.0.3",
     "react": "16.13.1",
     "react-native": "0.63.2",
-    "react-native-yet-another-sortable": "file:../"
+    "react-native-yet-another-sortable": "file:../react-native-yet-another-sortable-1.0.0.tgz"
   },
   "devDependencies": {
     "@babel/core": "7.11.0",
