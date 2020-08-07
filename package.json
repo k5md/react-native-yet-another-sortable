@@ -12,7 +12,12 @@
   "version": "1.0.0",
   "description": "Drag-and-drop sortable scrollable grid view for React Native.",
   "main": "src/index.js",
-  "scripts": {},
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "jest"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/k5md/react-native-yet-another-sortable.git"
@@ -22,12 +27,24 @@
   "dependencies": {
     "lodash": "^4.17.19"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@babel/core": "^7.11.1",
+    "@babel/runtime": "^7.11.2",
+    "@testing-library/jest-native": "^3.3.0",
+    "@testing-library/react-native": "^7.0.1",
+    "babel-jest": "^26.2.2",
+    "jest": "^26.2.2",
+    "metro-react-native-babel-preset": "^0.61.0",
+    "react": "^16.13.1",
+    "react-native": "^0.63.2",
+    "react-test-renderer": "^16.13.1"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
   "bugs": {
     "url": "https://github.com/k5md/react-native-yet-another-sortable/issues"
   },
-  "homepage": "https://github.com/k5md/react-native-yet-another-sortable#readme",
-  "directories": {
-    "example": "example"
-  }
+  "homepage": "https://github.com/k5md/react-native-yet-another-sortable#readme"
 }
