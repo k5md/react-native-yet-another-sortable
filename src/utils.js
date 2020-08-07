@@ -18,3 +18,9 @@ export const animateSpring = (animatable, from, to, callback = () => {}) => {
     useNativeDriver: true,
   }).start(callback);
 };
+
+export const getDistance = (pointA, pointB) => {
+  const xDistance = pointA.x - pointB.x;
+  const yDistance = pointA.y - pointB.y;
+  return Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2));
+};

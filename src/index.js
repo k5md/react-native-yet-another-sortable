@@ -3,10 +3,10 @@ import React, { Component } from 'react';
 import { Animated, TouchableWithoutFeedback, PanResponder, View, ScrollView } from 'react-native';
 import { sortBy, noop, clamp } from 'lodash';
 import { styles } from './styles';
-import { animateTiming, animateSpring } from './utils';
+import { animateTiming, animateSpring, getDistance } from './utils';
 import { SortableGridDefaultProps, SortableGridPropTypes } from './types';
 
-export class SortableGrid extends Component {
+class SortableGrid extends Component {
   itemOrder = {};
   blockPositions = {};
   activeBlock = null;
@@ -37,21 +37,21 @@ export class SortableGrid extends Component {
     super();
   }
 
-  UNSAFE_componentWillUpdate = (nextProps, nextState) => {
-    const { itemOrder, children, itemsPerRow, blockHeight } = nextProps;
-    this.gridHeight = blockHeight * Math.ceil(children.length / itemsPerRow);
-    this.blockWidth = (this.blockWidth * this.props.itemsPerRow) / itemsPerRow;
+  UNSAFE_componentWillUpdate = (nextProps) => {
+    console.log('will update');
+    this.gridHeight = nextProps.blockHeight * Math.ceil(nextProps.children.length / nextProps.columns);
+    this.blockWidth = (this.blockWidth * this.props.columns) / nextProps.columns;
 
     const oldBlockPositions = Object.keys(this.blockPositions);
     oldBlockPositions.forEach(
-      key => !children.find(child => child.key == key) && delete this.blockPositions[key],
+      key => !nextProps.children.find(child => child.key == key) && delete this.blockPositions[key],
     );
 
     this.itemOrder = {};
-    itemOrder.forEach((key, index) => {
+    nextProps.order.forEach((key, index) => {
       this.itemOrder[key] = { key, order: index };
-      const x = (index % itemsPerRow) * this.blockWidth;
-      const y = Math.floor(index / itemsPerRow) * blockHeight;
+      const x = (index % nextProps.columns) * this.blockWidth;
+      const y = Math.floor(index / nextProps.columns) * nextProps.blockHeight;
 
       if (!this.blockPositions[key]) {
         this.blockPositions[key] = {
@@ -124,13 +124,13 @@ export class SortableGrid extends Component {
   moveBlock = (originalPosition, currentPosition) => {
     const activeBlock = this.getActiveBlock();
     let closest = this.activeBlock;
-    let closestDistance = this.getDistanceTo(currentPosition, originalPosition);
+    let closestDistance = getDistance(currentPosition, originalPosition);
 
     // find closest block
     for (let key in this.blockPositions) {
       const block = this.blockPositions[key];
       const blockPosition = block.origin;
-      const distance = this.getDistanceTo(currentPosition, blockPosition);
+      const distance = getDistance(currentPosition, blockPosition);
       if (distance < closestDistance && distance < this.blockWidth) {
         closest = key;
         closestDistance = distance;
@@ -155,21 +155,26 @@ export class SortableGrid extends Component {
 
   onReleaseBlock = () => {
     this.keepScrolling = clearInterval(this.keepScrolling);
-    const activeBlock = this.getActiveBlock();
     this.deactivateDrag();
   };
 
   deactivateDrag = () => {
-    const itemOrder = sortBy(this.itemOrder, item => item.order).map(item => item.key);
     this.panCapture = false;
-    this.props.onDragRelease({ itemOrder });
-    this.activeBlock = null;
-    this.forceUpdate();
+
+    Animated.timing(this.getActiveBlock().currentPosition,
+      { toValue: this.getActiveBlock().origin,   duration: this.props.transitionDuration, useNativeDriver: true,
+    }).start(({ finished }) => {
+      const itemOrder = sortBy(this.itemOrder, item => item.order).map(item => item.key);
+      this.props.onDragRelease(itemOrder);
+      this.activeBlock = null;
+      this.forceUpdate();
+    });
   };
 
   activateDrag = key => () => {
-    animateSpring(this.startDragWiggle, 10, 0);
     this.panCapture = true;
+    animateSpring(this.startDragWiggle, 10, 0);
+    
     this.activeBlock = key;
     this.forceUpdate();
   };
@@ -180,15 +185,9 @@ export class SortableGrid extends Component {
 
   blockPositionsSet = () => Object.keys(this.blockPositions).length == this.props.children.length;
 
-  getDistanceTo = (pointA, pointB) => {
-    const xDistance = pointA.x - pointB.x;
-    const yDistance = pointA.y - pointB.y;
-    return Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2));
-  };
-
   onGridLayout = ({ nativeEvent }) => {
     this.gridWidth = nativeEvent.layout.width;
-    this.blockWidth = nativeEvent.layout.width / this.props.itemsPerRow;
+    this.blockWidth = nativeEvent.layout.width / this.props.columns;
     this.forceUpdate();
   };
 
@@ -234,7 +233,7 @@ export class SortableGrid extends Component {
     <Animated.View key={item.key} style={this.getBlockStyle(item.key)} {...this.panResponder.panHandlers}>
       <TouchableWithoutFeedback
         style={styles.container}
-        delayLongPress={this.props.dragActivationTreshold}
+        delayLongPress={this.props.activationTreshold}
         onLongPress={item.inactive ? noop : this.activateDrag(item.key)}
       >
         <View style={styles.itemImageContainer}>
@@ -264,4 +263,4 @@ export class SortableGrid extends Component {
 SortableGrid.propTypes = SortableGridPropTypes;
 SortableGrid.defaultProps = SortableGridDefaultProps;
 
-export default SortableGrid;
+module.exports = SortableGrid;

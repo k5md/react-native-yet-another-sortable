@@ -19,8 +19,15 @@
   },
   "author": "k5md",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {
-    "lodash": "^4.16.4"
+  "dependencies": {
+    "lodash": "^4.17.19"
+  },
+  "devDependencies": {},
+  "bugs": {
+    "url": "https://github.com/k5md/react-native-yet-another-sortable/issues"
+  },
+  "homepage": "https://github.com/k5md/react-native-yet-another-sortable#readme",
+  "directories": {
+    "example": "example"
   }
 }

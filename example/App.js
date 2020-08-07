@@ -19,7 +19,7 @@ const App = () => {
   })));
   const [order, setOrder] = useState(() => data.map(({ key }) => key));
   const [blockHeight, setBlockHeight] = useState(50);
-  const [itemsPerRow, setItemsPerRow] = useState(10);
+  const [columns, setColumns] = useState(10);
 
   const addEntry = useCallback(() => {
     const key = uniqueId('k_');
@@ -28,15 +28,20 @@ const App = () => {
   }, [data, order]);
 
   const deleteEntry = useCallback(() => {
-    setData(dropRight(data));
-  }, [data]);
+    if (!order.length) {
+      return;
+    }
+    const keyToRemove = order[order.length - 1];
+    setData(data.filter(({ key }) => key !== keyToRemove));
+    setOrder(dropRight(order));
+  }, [data, order]);
 
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
         <SortableGrid
-          itemsPerRow={itemsPerRow}
-          itemOrder={order}
+          columns={columns}
+          order={order}
           blockHeight={blockHeight}
           onDragRelease={setOrder}
         >
@@ -54,13 +59,13 @@ const App = () => {
           <Button title="Add" onPress={addEntry} />
         </View>
         <View style={styles.controls__entry}>
-          <Text>Items per row: {itemsPerRow}</Text>
+          <Text>Columns: {columns}</Text>
           <Slider
             minimumValue={1}
             maximumValue={10}
             step={1}
-            value={itemsPerRow}
-            onSlidingComplete={setItemsPerRow}
+            value={columns}
+            onSlidingComplete={setColumns}
             style={styles.container}
           />
         </View>

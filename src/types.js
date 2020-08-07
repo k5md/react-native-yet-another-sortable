@@ -1,26 +1,23 @@
 import { shape, number, string, objectOf, arrayOf, func, object } from 'prop-types';
 
 export const SortableGridPropTypes = {
-  blockTransitionDuration: number,
-  activeBlockCenteringDuration: number,
-  itemsPerRow: number,
-  dragActivationTreshold: number,
-  itemOrder: arrayOf(number),
+  transitionDuration: number,
+  columns: number,
+  activationThreshold: number,
+  order: arrayOf(string).isRequired,
   children: arrayOf(
     shape({
       key: string,
     }),
   ),
   onDragRelease: func,
-  blockHeight: number,
+  blockHeight: number.isRequired,
   style: object,
 };
 
 export const SortableGridDefaultProps = {
-  blockTransitionDuration: 300,
-  activeBlockCenteringDuration: 200,
-  itemsPerRow: 4,
-  dragActivationTreshold: 200,
-  onDragRelease: () => {},
+  transitionDuration: 200,
+  columns: 4,
+  activationThreshold: 200,
   style: {},
 };
