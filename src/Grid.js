@@ -2,8 +2,6 @@
 import React, { Component } from 'react';
 import { Animated, TouchableWithoutFeedback, PanResponder, View, ScrollView } from 'react-native';
 import { sortBy, noop, clamp } from 'lodash';
-import { shape, number, string, objectOf, arrayOf, func, object } from 'prop-types';
-import { animateTiming, animateSpring, getDistance } from './utils';
 import { StyleSheet } from 'react-native';
 import Cell from './Cell';
 
@@ -56,7 +54,12 @@ class SortableGrid extends Component {
       } else {
         this.getBlock(key).origin = blockPosition;
         // this.getBlock(key).currentPosition.setValue(blockPosition);
-        toBeAnimated.push(animateTiming(this.getBlock(key).currentPosition, blockPosition, this.props.transitionDuration * 4));
+        toBeAnimated.push(
+          Animated.timing(this.getBlock(key).currentPosition, {
+            toValue: blockPosition,
+            duration: this.props.transitionDuration * 2,
+            useNativeDriver: true,
+          }));
       }
     });
     Animated.parallel(toBeAnimated, { stopTogether: false }).start();
@@ -106,12 +109,16 @@ class SortableGrid extends Component {
     const currentPosition = activeBlock.currentPosition;
     const originalPosition = activeBlock.origin;
 
-    animateTiming(currentPosition, originalPosition, this.props.transitionDuration, () => {
+    Animated.timing(currentPosition, {
+      toValue: originalPosition,
+      duration: this.props.transitionDuration,
+      useNativeDriver: true,
+    }).start(() => {
       const itemOrder = sortBy(this.itemOrder, item => item.order).map(item => item.key);
       this.props.onDragRelease(itemOrder);
       this.activeBlock = null;
       this.forceUpdate();
-    });  
+    });
   };
 
   activateDrag = key => () => {
@@ -120,21 +127,35 @@ class SortableGrid extends Component {
       return;
     }
     this.panCapture = true;
-    animateSpring(this.startDragWiggle, 10, 0, () => {});
+
+    this.startDragWiggle.setValue(10);
+    Animated.spring(this.startDragWiggle, {
+      toValue: 0,
+      velocity: 2000,
+      tension: 2000,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
     
     this.activeBlock = key;
     this.forceUpdate();
   };
 
+  getDistance = (pointA, pointB) => {
+    const xDistance = pointA.x - pointB.x;
+    const yDistance = pointA.y - pointB.y;
+    return Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2));
+  };
+
   moveBlock = (originalPosition, currentPosition) => {
     const activeBlock = this.getActiveBlock();
     let closest = this.activeBlock;
-    let closestDistance = getDistance(currentPosition, originalPosition);
+    let closestDistance = this.getDistance(currentPosition, originalPosition);
 
     for (let key in this.blockPositions) {
       const block = this.blockPositions[key];
       const blockPosition = block.origin;
-      const distance = getDistance(currentPosition, blockPosition);
+      const distance = this.getDistance(currentPosition, blockPosition);
       if (distance < closestDistance && distance < this.blockWidth) {
         closest = key;
         closestDistance = distance;
@@ -146,7 +167,11 @@ class SortableGrid extends Component {
     }
 
     const closestBlock = this.getBlock(closest);
-    animateTiming(closestBlock.currentPosition, activeBlock.origin);
+    Animated.timing(closestBlock.currentPosition, {
+      toValue: activeBlock.origin,
+      duration: this.props.transitionDuration,
+      useNativeDriver: true,
+    }).start();
     activeBlock.origin = closestBlock.origin;
     closestBlock.origin = originalPosition;
 
