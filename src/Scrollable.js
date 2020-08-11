@@ -1,15 +1,22 @@
 /* eslint-disable eqeqeq */
 import React, { Component } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { shape, number, string, objectOf, arrayOf, func, object } from 'prop-types';
 import { clamp } from 'lodash';
-import SortableGrid from './Sortable';
+import SortableGrid from './Grid';
 
 class ScrollableGrid extends Component {
   scrollView = React.createRef();
   scrollOffset = { x: 0, y: 0 };
   activeBlockOffset = { x: 0, y: 0};
   keepScrolling = false;
+  layout = null;
+
+
+
+  childrenRefs = {};
+
+
 
   onGrantBlock = (evt, gestureState, grid) => {
     const activeBlockPosition = grid.getActiveBlock().origin;

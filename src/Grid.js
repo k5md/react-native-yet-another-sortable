@@ -5,6 +5,7 @@ import { sortBy, noop, clamp } from 'lodash';
 import { shape, number, string, objectOf, arrayOf, func, object } from 'prop-types';
 import { animateTiming, animateSpring, getDistance } from './utils';
 import { StyleSheet } from 'react-native';
+import Cell from './Cell';
 
 class SortableGrid extends Component {
   itemOrder = {};
@@ -195,23 +196,14 @@ class SortableGrid extends Component {
     this.activeBlock == key && { zIndex: 1 },
   ];
 
-  renderEntry = item => (
-    <Animated.View key={item.key} style={this.getBlockStyle(item.key)} {...this.panResponder.panHandlers}>
-      <TouchableWithoutFeedback
-        style={styles.container}
-        delayLongPress={this.props.activationTreshold}
-        onLongPress={item.inactive ? noop : this.activateDrag(item.key)}
-      >
-        <View style={styles.cell}>
-          <View style={styles.container}>{item}</View>
-        </View>
-      </TouchableWithoutFeedback>
-    </Animated.View>
-  );
-
   render = () => (
-    <Animated.View style={this.getGridStyle()} onLayout={this.onGridLayout}>
-      {this.props.children.map(this.renderEntry)}
+    <Animated.View style={this.getGridStyle()} onLayout={this.onGridLayout} {...this.panResponder.panHandlers}>
+      {this.props.children.map(item => <Cell
+        key={item.key}
+        item={item}
+        style={this.getBlockStyle(item.key)}
+        activateDrag={this.activateDrag(item.key)}
+      />)}
     </Animated.View>
   );
 }
@@ -225,9 +217,5 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-  },
-  cell: {
-    flex: 1,
-    justifyContent: 'center',
   },
 });
