@@ -9,8 +9,7 @@ class SortableGrid extends Component {
   itemOrder = {};
   blockPositions = {};
   activeBlock = null;
-  gridHeight = 0;
-  gridWidth = 0;
+  layout = { height: 0, width: 0 };
   blockWidth = 0;
   panCapture = false;
   panResponder = PanResponder.create({
@@ -22,12 +21,12 @@ class SortableGrid extends Component {
     onPanResponderRelease: (evt, gestureState) => this.onReleaseBlock(evt, gestureState),
   });
 
-  activeBlockOffset = null;
+  activeBlockOffset = { x: 0, y: 0 };
 
   startDragWiggle = new Animated.Value(0);
 
   UNSAFE_componentWillUpdate = (nextProps) => {
-    this.gridHeight = nextProps.blockHeight * Math.ceil(nextProps.children.length / nextProps.columns);
+    this.layout.height = nextProps.blockHeight * Math.ceil(nextProps.children.length / nextProps.columns);
     this.blockWidth = (this.blockWidth * this.props.columns) / nextProps.columns;
 
     const oldBlockPositions = Object.keys(this.blockPositions);
@@ -87,24 +86,20 @@ class SortableGrid extends Component {
       y: gestureState.moveY + this.activeBlockOffset.y,
     };
     const activeBlock = this.getActiveBlock();
-    const originalPosition = activeBlock.origin;
-    const currentPosition = activeBlock.currentPosition;
-
     const actualDragPosition = {
-      x: clamp(dragPosition.x, 0, this.gridWidth - this.blockWidth),
-      y: clamp(dragPosition.y, 0, this.gridHeight - this.props.blockHeight),
+      x: clamp(dragPosition.x, 0, this.layout.width - this.blockWidth),
+      y: clamp(dragPosition.y, 0, this.layout.height - this.props.blockHeight),
     };
-    currentPosition.setValue(actualDragPosition);
-    this.moveBlock(originalPosition, actualDragPosition);
+    activeBlock.currentPosition.setValue(actualDragPosition);
+    this.moveBlock(activeBlock.origin, actualDragPosition);
   };
 
   onReleaseBlock = (evt, gestureState) => {
+    this.panCapture = false;
     const override = this.props.onReleaseBlock(evt, gestureState, this);
     if (override) {
       return;
     }
-    this.panCapture = false;
-
     const activeBlock = this.getActiveBlock();
     const currentPosition = activeBlock.currentPosition;
     const originalPosition = activeBlock.origin;
@@ -122,11 +117,12 @@ class SortableGrid extends Component {
   };
 
   activateDrag = key => () => {
+    this.panCapture = true;
     const override = this.props.activateDrag(this);
     if (override) {
       return;
     }
-    this.panCapture = true;
+    
 
     this.startDragWiggle.setValue(10);
     Animated.spring(this.startDragWiggle, {
@@ -187,14 +183,14 @@ class SortableGrid extends Component {
   blockPositionsSet = () => Object.keys(this.blockPositions).length == this.props.children.length;
 
   onGridLayout = ({ nativeEvent }) => {
-    this.gridWidth = nativeEvent.layout.width;
+    this.layout.width = nativeEvent.layout.width;
     this.blockWidth = nativeEvent.layout.width / this.props.columns;
     this.forceUpdate();
   };
 
   getGridStyle = () => [
     styles.grid,
-    this.blockPositionsSet() && { height: this.gridHeight + this.props.blockHeight },
+    this.blockPositionsSet() && { height: this.layout.height + this.props.blockHeight },
   ];
 
   getBlockStyle = key => [

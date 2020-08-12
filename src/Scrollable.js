@@ -38,12 +38,12 @@ class ScrollableGrid extends Component {
     const scrollUp = dragPosition.y < scrollThreshold && this.scrollOffset.y > 0;
     const scrollDown =
       dragPosition.y > this.layout.height - this.layout.y - scrollThreshold &&
-      dragPosition.y + this.scrollOffset.y + scrollThreshold < grid.gridHeight;
+      dragPosition.y + this.scrollOffset.y + scrollThreshold < grid.layout.height;
 
     const scrollBy = (scrollUp * -1 + scrollDown * 1) * grid.props.blockHeight;
 
-    const clampX = x => clamp(x, 0, grid.gridWidth - grid.blockWidth);
-    const clampY = y => clamp(y, 0, grid.gridHeight - grid.props.blockHeight);
+    const clampX = x => clamp(x, 0, grid.layout.width - grid.blockWidth);
+    const clampY = y => clamp(y, 0, grid.layout.height - grid.props.blockHeight);
 
     if (!scrollDown && !scrollUp) {
       const actualDragPosition = {
