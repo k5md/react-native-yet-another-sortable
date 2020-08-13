@@ -25,7 +25,6 @@
   "author": "k5md",
   "license": "MIT",
   "dependencies": {
-    "@react-native-community/eslint-config": "^2.0.0",
     "lodash": "^4.17.19"
   },
   "peerDependencies": {
@@ -35,11 +34,14 @@
   "devDependencies": {
     "@babel/core": "^7.11.1",
     "@babel/runtime": "^7.11.2",
+    "@react-native-community/eslint-config": "^2.0.0",
     "@testing-library/jest-native": "^3.3.0",
     "@testing-library/react-native": "^7.0.1",
     "babel-jest": "^26.2.2",
+    "eslint": "^7.6.0",
     "jest": "^26.2.2",
     "metro-react-native-babel-preset": "^0.61.0",
+    "prettier": "^2.0.5",
     "react": "^16.13.1",
     "react-native": "^0.63.2",
     "react-test-renderer": "^16.13.1"
