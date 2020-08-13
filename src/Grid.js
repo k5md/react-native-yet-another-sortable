@@ -1,5 +1,5 @@
 /* eslint-disable eqeqeq */
-import React, { Component } from 'react';
+import React, { Component, PureComponent } from 'react';
 import { Animated, TouchableWithoutFeedback, PanResponder, View, ScrollView } from 'react-native';
 import { sortBy, noop, clamp } from 'lodash';
 import { StyleSheet } from 'react-native';
@@ -8,7 +8,6 @@ import Cell from './Cell';
 class SortableGrid extends Component {
   itemOrder = {};
   blockPositions = {};
-  activeBlock = null;
   layout = { height: 0, width: 0 };
   blockWidth = 0;
   panCapture = false;
@@ -22,21 +21,24 @@ class SortableGrid extends Component {
   });
 
   activeBlockOffset = { x: 0, y: 0 };
+  activeBlock = null;
 
-  startDragWiggle = new Animated.Value(0);
+  wiggle = new Animated.Value(0);
+
+  shouldComponentUpdate = (nextProps, nextState) => {
+    return nextProps !== this.props;
+  }
 
   UNSAFE_componentWillUpdate = (nextProps) => {
-    this.layout.height = nextProps.blockHeight * Math.ceil(nextProps.children.length / nextProps.columns);
-    this.blockWidth = (this.blockWidth * this.props.columns) / nextProps.columns;
+    this.layout.height = nextProps.blockHeight * Math.ceil(nextProps.data.length / nextProps.columns);
+    this.blockWidth = Math.floor(this.blockWidth * this.props.columns) / nextProps.columns;
 
     const oldBlockPositions = Object.keys(this.blockPositions);
     oldBlockPositions.forEach(
-      key => !nextProps.children.find(child => child.key == key) && delete this.blockPositions[key],
+      key => !nextProps.data.find(child => child.key == key) && delete this.blockPositions[key],
     );
 
     this.itemOrder = {};
-
-    const toBeAnimated = [];
 
     nextProps.order.forEach((key, index) => {
       this.itemOrder[key] = { key, order: index };
@@ -47,21 +49,17 @@ class SortableGrid extends Component {
     
       if (!this.blockPositions[key]) {
         this.blockPositions[key] = {
-          currentPosition: new Animated.ValueXY(blockPosition),
           origin: blockPosition,
+          currentPosition: new Animated.ValueXY(blockPosition),   
         };
       } else {
+        if (this.blockPositions[key].origin.x === blockPosition.x && this.blockPositions[key].origin.y === blockPosition.y) {
+          return;
+        }
         this.getBlock(key).origin = blockPosition;
-        // this.getBlock(key).currentPosition.setValue(blockPosition);
-        toBeAnimated.push(
-          Animated.timing(this.getBlock(key).currentPosition, {
-            toValue: blockPosition,
-            duration: this.props.transitionDuration * 2,
-            useNativeDriver: true,
-          }));
+        this.getBlock(key).currentPosition.setValue(blockPosition);
       }
     });
-    Animated.parallel(toBeAnimated, { stopTogether: false }).start();
   };
 
   onGrantBlock = (evt, gestureState) => {
@@ -112,28 +110,25 @@ class SortableGrid extends Component {
       const itemOrder = sortBy(this.itemOrder, item => item.order).map(item => item.key);
       this.props.onDragRelease(itemOrder);
       this.activeBlock = null;
-      this.forceUpdate();
     });
   };
 
-  activateDrag = key => () => {
+  activateDrag = key => {
     this.panCapture = true;
+    this.activeBlock = key;
     const override = this.props.activateDrag(this);
     if (override) {
       return;
     }
-    
-
-    this.startDragWiggle.setValue(10);
-    Animated.spring(this.startDragWiggle, {
+    this.wiggle.setValue(10);
+    Animated.spring(this.wiggle, {
       toValue: 0,
       velocity: 2000,
       tension: 2000,
+      duration: 100,
       friction: 5,
       useNativeDriver: true,
     }).start();
-    
-    this.activeBlock = key;
     this.forceUpdate();
   };
 
@@ -180,7 +175,7 @@ class SortableGrid extends Component {
 
   getBlock = key => this.blockPositions[key];
 
-  blockPositionsSet = () => Object.keys(this.blockPositions).length == this.props.children.length;
+  blockPositionsSet = () => Object.keys(this.blockPositions).length == this.props.data.length;
 
   onGridLayout = ({ nativeEvent }) => {
     this.layout.width = nativeEvent.layout.width;
@@ -193,37 +188,23 @@ class SortableGrid extends Component {
     this.blockPositionsSet() && { height: this.layout.height + this.props.blockHeight },
   ];
 
-  getBlockStyle = key => [
-    {
-      width: this.blockWidth,
-      height: this.props.blockHeight,
-      justifyContent: 'center',
-    },
-    this.blockPositionsSet() && {
-      position: 'absolute',
-      transform: [
-        ...this.getBlock(key).currentPosition.getTranslateTransform(),
-        {
-          rotate:
-            this.activeBlock == key
-              ? this.startDragWiggle.interpolate({
-                  inputRange: [0, 360],
-                  outputRange: ['0 deg', '360 deg'],
-                })
-              : '0deg',
-        },
-      ],
-    },
-    this.activeBlock == key && { zIndex: 1 },
-  ];
-
   render = () => (
     <Animated.View style={this.getGridStyle()} onLayout={this.onGridLayout} {...this.panResponder.panHandlers}>
-      {this.props.children.map(item => <Cell
+      {this.props.data.map(item => <Cell
         key={item.key}
         item={item}
-        style={this.getBlockStyle(item.key)}
-        activateDrag={this.activateDrag(item.key)}
+        activateDrag={this.activateDrag}
+        renderItem={this.props.renderItem}
+        height={this.props.blockHeight}
+        width={this.blockWidth}
+        blockPositionsSet={this.blockPositionsSet()}
+        translateX={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.x : 0}
+        translateY={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.y : 0}
+        rotate={this.activeBlock == item.key ? this.wiggle.interpolate({
+          inputRange: [0, 360],
+          outputRange: ['0 deg', '360 deg'],
+        }) : '0deg'}
+        zIndex={this.activeBlock === item.key ? 1 : 0 }
       />)}
     </Animated.View>
   );

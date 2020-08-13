@@ -1,22 +1,16 @@
 /* eslint-disable eqeqeq */
-import React, { Component } from 'react';
-import { ScrollView, View } from 'react-native';
+import React, { Component, PureComponent } from 'react';
+import { ScrollView, View,} from 'react-native';
 import { shape, number, string, objectOf, arrayOf, func, object } from 'prop-types';
 import { clamp } from 'lodash';
 import SortableGrid from './Grid';
 
-class ScrollableGrid extends Component {
+class ScrollableGrid extends PureComponent {
   scrollView = React.createRef();
   scrollOffset = { x: 0, y: 0 };
   activeBlockOffset = { x: 0, y: 0};
   keepScrolling = false;
   layout = null;
-
-
-
-  childrenRefs = {};
-
-
 
   onGrantBlock = (evt, gestureState, grid) => {
     const activeBlockPosition = grid.getActiveBlock().origin;
@@ -104,6 +98,7 @@ class ScrollableGrid extends Component {
       scrollEnabled={!this.panCapture}
       showsVerticalScrollIndicator={false}
       canCancelContentTouches={false}
+      removeClippedSubviews
     >
       <SortableGrid
         {...this.props}
@@ -137,7 +132,7 @@ ScrollableGrid.propTypes = {
 ScrollableGrid.defaultProps = {
   transitionDuration: 200,
   columns: 4,
-  activationThreshold: 200,
+  activationThreshold: 100,
   style: {},
   onGrantBlock: () => {},
   onReleaseBlock: () => {},
