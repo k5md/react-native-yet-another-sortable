@@ -1,14 +1,13 @@
-/* eslint-disable eqeqeq */
-import React, { Component, PureComponent } from 'react';
-import { ScrollView, View,} from 'react-native';
-import { shape, number, string, objectOf, arrayOf, func, object } from 'prop-types';
+import React, { Component } from 'react';
+import { ScrollView } from 'react-native';
+import { shape, number, string, arrayOf, func, object } from 'prop-types';
 import { clamp } from 'lodash';
 import SortableGrid from './Grid';
 
-class ScrollableGrid extends PureComponent {
+class ScrollableGrid extends Component {
   scrollView = React.createRef();
   scrollOffset = { x: 0, y: 0 };
-  activeBlockOffset = { x: 0, y: 0};
+  activeBlockOffset = { x: 0, y: 0 };
   keepScrolling = false;
   layout = null;
 
@@ -36,8 +35,8 @@ class ScrollableGrid extends PureComponent {
 
     const scrollBy = (scrollUp * -1 + scrollDown * 1) * grid.props.blockHeight;
 
-    const clampX = x => clamp(x, 0, grid.layout.width - grid.blockWidth);
-    const clampY = y => clamp(y, 0, grid.layout.height - grid.props.blockHeight);
+    const clampX = (x) => clamp(x, 0, grid.layout.width - grid.blockWidth);
+    const clampY = (y) => clamp(y, 0, grid.layout.height - grid.props.blockHeight);
 
     if (!scrollDown && !scrollUp) {
       const actualDragPosition = {

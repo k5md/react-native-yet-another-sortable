@@ -12,11 +12,13 @@ export const getColor = () => {
 };
 
 const App = () => {
-  const [data, setData] = useState(() => range(50).map(value => ({
-    value,
-    key: uniqueId('k_'),
-    color: getColor(),
-  })));
+  const [data, setData] = useState(() =>
+    range(100).map((value) => ({
+      value,
+      key: uniqueId('k_'),
+      color: getColor(),
+    })),
+  );
   const [order, setOrder] = useState(() => data.map(({ key }) => key));
   const [blockHeight, setBlockHeight] = useState(50);
   const [columns, setColumns] = useState(10);
@@ -36,6 +38,15 @@ const App = () => {
     setOrder(dropRight(order));
   }, [data, order]);
 
+  const renderItem = useCallback(
+    ({ value, key, color }) => (
+      <View key={key} style={[styles.block, { backgroundColor: color }]}>
+        <Text style={styles.block__text}>{value}</Text>
+      </View>
+    ),
+    [],
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
@@ -44,13 +55,9 @@ const App = () => {
           order={order}
           blockHeight={blockHeight}
           onDragRelease={setOrder}
-        >
-          {data.map(({ value, key, color }) => (
-            <View key={key} style={[styles.block, { backgroundColor: color }]}>
-              <Text style={styles.block__text}>{value}</Text>
-            </View>
-          ))}
-        </SortableGrid>
+          data={data}
+          renderItem={renderItem}
+        />
       </View>
       <View style={styles.controls}>
         <View style={styles.controls__entry}>
@@ -94,7 +101,7 @@ const styles = StyleSheet.create({
     margin: 5,
     borderRadius: 5,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   block__text: {
     color: 'white',

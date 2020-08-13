@@ -6,7 +6,7 @@ import SortableGrid from '../src';
 
 test('exists', () => {
   const textPrefix = 'cell_text';
-  const data = range(5).map(() => ({ value: uniqueId(textPrefix), key: uniqueId()}));
+  const data = range(5).map(() => ({ value: uniqueId(textPrefix), key: uniqueId() }));
   const order = data.map(({ key }) => key);
   const columns = 1;
   const blockHeight = 10;
@@ -18,7 +18,7 @@ test('exists', () => {
           <Text>{value}</Text>
         </View>
       ))}
-    </SortableGrid>
+    </SortableGrid>,
   );
 
   const renderedCells = getAllByText(new RegExp(textPrefix));

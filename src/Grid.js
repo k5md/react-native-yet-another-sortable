@@ -1,8 +1,6 @@
-/* eslint-disable eqeqeq */
-import React, { Component, PureComponent } from 'react';
-import { Animated, TouchableWithoutFeedback, PanResponder, View, ScrollView } from 'react-native';
-import { sortBy, noop, clamp } from 'lodash';
-import { StyleSheet } from 'react-native';
+import React, { Component } from 'react';
+import { Animated, PanResponder, StyleSheet } from 'react-native';
+import { sortBy, clamp } from 'lodash';
 import Cell from './Cell';
 
 class SortableGrid extends Component {
@@ -27,7 +25,7 @@ class SortableGrid extends Component {
 
   shouldComponentUpdate = (nextProps, nextState) => {
     return nextProps !== this.props;
-  }
+  };
 
   UNSAFE_componentWillUpdate = (nextProps) => {
     this.layout.height = nextProps.blockHeight * Math.ceil(nextProps.data.length / nextProps.columns);
@@ -35,7 +33,7 @@ class SortableGrid extends Component {
 
     const oldBlockPositions = Object.keys(this.blockPositions);
     oldBlockPositions.forEach(
-      key => !nextProps.data.find(child => child.key == key) && delete this.blockPositions[key],
+      (key) => !nextProps.data.find((child) => child.key === key) && delete this.blockPositions[key],
     );
 
     this.itemOrder = {};
@@ -46,14 +44,17 @@ class SortableGrid extends Component {
         x: (index % nextProps.columns) * this.blockWidth,
         y: Math.floor(index / nextProps.columns) * nextProps.blockHeight,
       };
-    
+
       if (!this.blockPositions[key]) {
         this.blockPositions[key] = {
           origin: blockPosition,
-          currentPosition: new Animated.ValueXY(blockPosition),   
+          currentPosition: new Animated.ValueXY(blockPosition),
         };
       } else {
-        if (this.blockPositions[key].origin.x === blockPosition.x && this.blockPositions[key].origin.y === blockPosition.y) {
+        if (
+          this.blockPositions[key].origin.x === blockPosition.x &&
+          this.blockPositions[key].origin.y === blockPosition.y
+        ) {
           return;
         }
         this.getBlock(key).origin = blockPosition;
@@ -107,13 +108,13 @@ class SortableGrid extends Component {
       duration: this.props.transitionDuration,
       useNativeDriver: true,
     }).start(() => {
-      const itemOrder = sortBy(this.itemOrder, item => item.order).map(item => item.key);
+      const itemOrder = sortBy(this.itemOrder, (item) => item.order).map((item) => item.key);
       this.props.onDragRelease(itemOrder);
       this.activeBlock = null;
     });
   };
 
-  activateDrag = key => {
+  activateDrag = (key) => {
     this.panCapture = true;
     this.activeBlock = key;
     const override = this.props.activateDrag(this);
@@ -153,7 +154,7 @@ class SortableGrid extends Component {
       }
     }
 
-    if (closest == this.activeBlock) {
+    if (closest === this.activeBlock) {
       return;
     }
 
@@ -173,9 +174,9 @@ class SortableGrid extends Component {
 
   getActiveBlock = () => this.blockPositions[this.activeBlock];
 
-  getBlock = key => this.blockPositions[key];
+  getBlock = (key) => this.blockPositions[key];
 
-  blockPositionsSet = () => Object.keys(this.blockPositions).length == this.props.data.length;
+  blockPositionsSet = () => Object.keys(this.blockPositions).length === this.props.data.length;
 
   onGridLayout = ({ nativeEvent }) => {
     this.layout.width = nativeEvent.layout.width;
@@ -189,23 +190,33 @@ class SortableGrid extends Component {
   ];
 
   render = () => (
-    <Animated.View style={this.getGridStyle()} onLayout={this.onGridLayout} {...this.panResponder.panHandlers}>
-      {this.props.data.map(item => <Cell
-        key={item.key}
-        item={item}
-        activateDrag={this.activateDrag}
-        renderItem={this.props.renderItem}
-        height={this.props.blockHeight}
-        width={this.blockWidth}
-        blockPositionsSet={this.blockPositionsSet()}
-        translateX={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.x : 0}
-        translateY={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.y : 0}
-        rotate={this.activeBlock == item.key ? this.wiggle.interpolate({
-          inputRange: [0, 360],
-          outputRange: ['0 deg', '360 deg'],
-        }) : '0deg'}
-        zIndex={this.activeBlock === item.key ? 1 : 0 }
-      />)}
+    <Animated.View
+      style={this.getGridStyle()}
+      onLayout={this.onGridLayout}
+      {...this.panResponder.panHandlers}
+    >
+      {this.props.data.map((item) => (
+        <Cell
+          key={item.key}
+          item={item}
+          activateDrag={this.activateDrag}
+          renderItem={this.props.renderItem}
+          height={this.props.blockHeight}
+          width={this.blockWidth}
+          blockPositionsSet={this.blockPositionsSet()}
+          translateX={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.x : 0}
+          translateY={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.y : 0}
+          rotate={
+            this.activeBlock === item.key
+              ? this.wiggle.interpolate({
+                  inputRange: [0, 360],
+                  outputRange: ['0 deg', '360 deg'],
+                })
+              : '0deg'
+          }
+          zIndex={this.activeBlock === item.key ? 1 : 0}
+        />
+      ))}
     </Animated.View>
   );
 }

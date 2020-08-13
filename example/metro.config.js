@@ -19,23 +19,17 @@ module.exports = {
     }),
   },
   projectRoot: __dirname,
-  watchFolders: [
-    path.resolve(__dirname, '..'),
-  ],
+  watchFolders: [path.resolve(__dirname, '..')],
   resolver: {
-    blacklistRE: blacklist([
-      new RegExp(
-        `^${escape(path.resolve(__dirname, '..', 'node_modules'))}\/.*$`
-      ),
-    ]),
+    blacklistRE: blacklist([new RegExp(`^${escape(path.resolve(__dirname, '..', 'node_modules'))}/.*$`)]),
     extraNodeModules: new Proxy(
       {},
       {
         get: (target, name) => {
           if (target.hasOwnProperty(name)) {
-            return target[name]
+            return target[name];
           }
-          return path.join(process.cwd(), `node_modules/${name}`)
+          return path.join(process.cwd(), `node_modules/${name}`);
         },
       },
     ),

@@ -16,6 +16,8 @@
     "src"
   ],
   "scripts": {
+    "lint": "eslint ./ --ignore-path .gitignore",
+    "lint:fix": "npm run lint -- --fix",
     "test": "jest"
   },
   "repository": {
