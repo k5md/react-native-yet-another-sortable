@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Animated, PanResponder, StyleSheet } from 'react-native';
 import { sortBy, clamp } from 'lodash';
+import { animateTiming, animateWiggle } from './utils';
 import Cell from './Cell';
 
 class SortableGrid extends Component {
@@ -103,11 +104,7 @@ class SortableGrid extends Component {
     const currentPosition = activeBlock.currentPosition;
     const originalPosition = activeBlock.origin;
 
-    Animated.timing(currentPosition, {
-      toValue: originalPosition,
-      duration: this.props.transitionDuration,
-      useNativeDriver: true,
-    }).start(() => {
+    animateTiming(currentPosition, originalPosition, this.props.transitionDuration, () => {
       const itemOrder = sortBy(this.itemOrder, (item) => item.order).map((item) => item.key);
       this.props.onDragRelease(itemOrder);
       this.activeBlock = null;
@@ -121,15 +118,7 @@ class SortableGrid extends Component {
     if (override) {
       return;
     }
-    this.wiggle.setValue(10);
-    Animated.spring(this.wiggle, {
-      toValue: 0,
-      velocity: 2000,
-      tension: 2000,
-      duration: 100,
-      friction: 5,
-      useNativeDriver: true,
-    }).start();
+    animateWiggle(this.wiggle, 10, 0, this.props.transitionDuration);
     this.forceUpdate();
   };
 
@@ -159,11 +148,7 @@ class SortableGrid extends Component {
     }
 
     const closestBlock = this.getBlock(closest);
-    Animated.timing(closestBlock.currentPosition, {
-      toValue: activeBlock.origin,
-      duration: this.props.transitionDuration,
-      useNativeDriver: true,
-    }).start();
+    animateTiming(closestBlock.currentPosition, activeBlock.origin, this.props.transitionDuration);
     activeBlock.origin = closestBlock.origin;
     closestBlock.origin = originalPosition;
 
