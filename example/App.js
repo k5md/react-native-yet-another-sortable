@@ -20,7 +20,7 @@ const App = () => {
     })),
   );
   const [order, setOrder] = useState(() => data.map(({ key }) => key));
-  const [blockHeight, setBlockHeight] = useState(50);
+  const [rowHeight, setRowHeight] = useState(50);
   const [columns, setColumns] = useState(10);
 
   const addEntry = useCallback(() => {
@@ -39,8 +39,8 @@ const App = () => {
   }, [data, order]);
 
   const renderItem = useCallback(
-    ({ value, key, color }) => (
-      <View key={key} style={[styles.block, { backgroundColor: color }]}>
+    ({ value, color }) => (
+      <View style={[styles.block, { backgroundColor: color }]}>
         <Text style={styles.block__text}>{value}</Text>
       </View>
     ),
@@ -51,12 +51,12 @@ const App = () => {
     <View style={styles.container}>
       <View style={styles.grid}>
         <SortableGrid
-          columns={columns}
           order={order}
-          blockHeight={blockHeight}
-          onDragRelease={setOrder}
           data={data}
           renderItem={renderItem}
+          columns={columns}
+          rowHeight={rowHeight}
+          onDeactivateDrag={setOrder}
         />
       </View>
       <View style={styles.controls}>
@@ -77,13 +77,13 @@ const App = () => {
           />
         </View>
         <View style={styles.controls__entry}>
-          <Text>Block height: {blockHeight}</Text>
+          <Text>Row height: {rowHeight}</Text>
           <Slider
             minimumValue={50}
             maximumValue={200}
             step={10}
-            value={blockHeight}
-            onSlidingComplete={setBlockHeight}
+            value={rowHeight}
+            onSlidingComplete={setRowHeight}
             style={styles.container}
           />
         </View>

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
 import { noop, union } from 'lodash';
+import { shape, number, string, func, object, bool, oneOfType } from 'prop-types';
 
 class Cell extends Component {
   shouldComponentUpdate = (nextProps) => {
@@ -17,39 +18,26 @@ class Cell extends Component {
     return false;
   };
 
+  getStyle = () => {
+    const { rotation, position, active, width, height } = this.props;
+    const rotate = rotation
+      ? rotation.interpolate({ inputRange: [0, 360], outputRange: ['0 deg', '360 deg'] })
+      : '0deg';
+    const translates = position ? position.getTranslateTransform() : [];
+    const transform = translates.concat({ rotate });
+    const zIndex = active ? 1 : 0;
+    return { position: 'absolute', transform, height, width, justifyContent: 'center', zIndex };
+  };
+
   render() {
-    const {
-      item,
-      style,
-      activateDrag,
-      activationTreshold,
-      renderItem,
-      height,
-      width,
-      translateX,
-      translateY,
-      blockPositionsSet,
-      rotate,
-      zIndex,
-    } = this.props;
+    const { item, onActivate, activationTreshold, renderItem } = this.props;
     const renderedItem = renderItem(item);
     return (
-      <Animated.View
-        style={[
-          style,
-          { justifyContent: 'center', height, width },
-          blockPositionsSet
-            ? {
-                position: 'absolute',
-                transform: [{ translateX }, { translateY }, { rotate }],
-              }
-            : {},
-        ]}
-      >
+      <Animated.View style={this.getStyle()}>
         <TouchableWithoutFeedback
           style={styles.container}
           delayLongPress={activationTreshold}
-          onLongPress={item.inactive ? noop : () => activateDrag(item.key)}
+          onLongPress={item.inactive ? noop : () => onActivate(item.key)}
         >
           <View style={styles.cell}>
             <View style={styles.container}>{renderedItem}</View>
@@ -69,5 +57,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+Cell.propTypes = {
+  item: shape({ key: string }).isRequired,
+  renderItem: func.isRequired,
+  activationTreshold: number,
+  onActivate: func,
+  height: number,
+  width: number,
+  active: bool,
+  position: oneOfType([object, bool]),
+  rotation: oneOfType([object, bool]),
+};
+
+Cell.defaultProps = {};
 
 export default Cell;

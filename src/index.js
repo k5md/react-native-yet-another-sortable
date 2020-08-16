@@ -1,3 +1,6 @@
-import SortableGrid from './Scrollable';
+import SortableGrid from './Grid';
+import makeScrollable from './Scrollable';
 
-module.exports = SortableGrid;
+const ScrollableSortableGrid = makeScrollable(SortableGrid);
+
+export default ScrollableSortableGrid;

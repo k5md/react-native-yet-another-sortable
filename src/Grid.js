@@ -1,10 +1,11 @@
-import React, { Component } from 'react';
-import { Animated, PanResponder, StyleSheet } from 'react-native';
+import React, { PureComponent } from 'react';
+import { Animated, PanResponder, StyleSheet, TouchableHighlightBase } from 'react-native';
 import { sortBy, clamp } from 'lodash';
 import { animateTiming, animateWiggle } from './utils';
 import Cell from './Cell';
+import { shape, number, string, arrayOf, func, object } from 'prop-types';
 
-class SortableGrid extends Component {
+class SortableGrid extends PureComponent {
   itemOrder = {};
   blockPositions = {};
   layout = { height: 0, width: 0 };
@@ -24,12 +25,8 @@ class SortableGrid extends Component {
 
   wiggle = new Animated.Value(0);
 
-  shouldComponentUpdate = (nextProps, nextState) => {
-    return nextProps !== this.props;
-  };
-
   UNSAFE_componentWillUpdate = (nextProps) => {
-    this.layout.height = nextProps.blockHeight * Math.ceil(nextProps.data.length / nextProps.columns);
+    this.layout.height = nextProps.rowHeight * Math.ceil(nextProps.data.length / nextProps.columns);
     this.blockWidth = Math.floor(this.blockWidth * this.props.columns) / nextProps.columns;
 
     const oldBlockPositions = Object.keys(this.blockPositions);
@@ -43,7 +40,7 @@ class SortableGrid extends Component {
       this.itemOrder[key] = { key, order: index };
       const blockPosition = {
         x: (index % nextProps.columns) * this.blockWidth,
-        y: Math.floor(index / nextProps.columns) * nextProps.blockHeight,
+        y: Math.floor(index / nextProps.columns) * nextProps.rowHeight,
       };
 
       if (!this.blockPositions[key]) {
@@ -88,7 +85,7 @@ class SortableGrid extends Component {
     const activeBlock = this.getActiveBlock();
     const actualDragPosition = {
       x: clamp(dragPosition.x, 0, this.layout.width - this.blockWidth),
-      y: clamp(dragPosition.y, 0, this.layout.height - this.props.blockHeight),
+      y: clamp(dragPosition.y, 0, this.layout.height - this.props.rowHeight),
     };
     activeBlock.currentPosition.setValue(actualDragPosition);
     this.moveBlock(activeBlock.origin, actualDragPosition);
@@ -104,22 +101,24 @@ class SortableGrid extends Component {
     const currentPosition = activeBlock.currentPosition;
     const originalPosition = activeBlock.origin;
 
-    animateTiming(currentPosition, originalPosition, this.props.transitionDuration, () => {
-      const itemOrder = sortBy(this.itemOrder, (item) => item.order).map((item) => item.key);
-      this.props.onDragRelease(itemOrder);
-      this.activeBlock = null;
-    });
+    animateTiming(currentPosition, originalPosition, this.props.transitionDuration, this.onDeactivateDrag);
   };
 
-  activateDrag = (key) => {
+  onActivateDrag = (key) => {
     this.panCapture = true;
     this.activeBlock = key;
-    const override = this.props.activateDrag(this);
+    const override = this.props.onActivateDrag(this);
     if (override) {
       return;
     }
     animateWiggle(this.wiggle, 10, 0, this.props.transitionDuration);
     this.forceUpdate();
+  };
+
+  onDeactivateDrag = () => {
+    const itemOrder = sortBy(this.itemOrder, (item) => item.order).map((item) => item.key);
+    this.props.onDeactivateDrag(itemOrder, this);
+    this.activeBlock = null;
   };
 
   getDistance = (pointA, pointB) => {
@@ -171,7 +170,7 @@ class SortableGrid extends Component {
 
   getGridStyle = () => [
     styles.grid,
-    this.blockPositionsSet() && { height: this.layout.height + this.props.blockHeight },
+    this.blockPositionsSet() && { height: this.layout.height + this.props.rowHeight },
   ];
 
   render = () => (
@@ -184,29 +183,18 @@ class SortableGrid extends Component {
         <Cell
           key={item.key}
           item={item}
-          activateDrag={this.activateDrag}
+          onActivate={this.onActivateDrag}
           renderItem={this.props.renderItem}
-          height={this.props.blockHeight}
+          height={this.props.rowHeight}
           width={this.blockWidth}
-          blockPositionsSet={this.blockPositionsSet()}
-          translateX={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.x : 0}
-          translateY={this.blockPositions[item.key] ? this.blockPositions[item.key].currentPosition.y : 0}
-          rotate={
-            this.activeBlock === item.key
-              ? this.wiggle.interpolate({
-                  inputRange: [0, 360],
-                  outputRange: ['0 deg', '360 deg'],
-                })
-              : '0deg'
-          }
-          zIndex={this.activeBlock === item.key ? 1 : 0}
+          active={this.activeBlock === item.key}
+          position={this.blockPositionsSet() && this.blockPositions[item.key].currentPosition}
+          rotation={this.activeBlock === item.key && this.wiggle}
         />
       ))}
     </Animated.View>
   );
 }
-
-module.exports = SortableGrid;
 
 const styles = StyleSheet.create({
   container: {
@@ -217,3 +205,34 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
 });
+
+SortableGrid.propTypes = {
+  order: arrayOf(string).isRequired,
+  data: arrayOf(shape({ key: string })).isRequired,
+  rowHeight: number,
+  columns: number,
+  activationThreshold: number,
+  transitionDuration: number,
+  style: object,
+  renderItem: func.isRequired,
+  onGrantBlock: func,
+  onMoveBlock: func,
+  onReleaseBlock: func,
+  onActivateDrag: func,
+  onDeactivateDrag: func,
+};
+
+SortableGrid.defaultProps = {
+  rowHeight: 50,
+  columns: 4,
+  activationThreshold: 100,
+  transitionDuration: 200,
+  style: {},
+  onGrantBlock: () => {},
+  onMoveBlock: () => {},
+  onReleaseBlock: () => {},
+  onActivateDrag: () => {},
+  onDeactivateDrag: () => {},
+};
+
+export default SortableGrid;
