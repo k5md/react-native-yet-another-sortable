@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { ScrollView } from 'react-native';
-import { clamp } from 'lodash';
+import { clamp, noop } from 'lodash';
 import { func } from 'prop-types';
 
 const makeScrollable = (WrappedComponent) => {
@@ -17,11 +17,12 @@ const makeScrollable = (WrappedComponent) => {
       const x = activeBlockPosition.x - gestureState.x0;
       const y = activeBlockPosition.y - gestureState.y0 - this.scrollOffset.y;
       this.activeBlockOffset = { x, y };
-      return this.props.onGrantBlock(evt, gestureState, grid);
+      this.props.onGrantBlock(evt, gestureState, grid);
+      return false;
     };
 
     onMoveBlock = (evt, gestureState, grid) => {
-      let dragPosition = {
+      const dragPosition = {
         x: gestureState.moveX + this.activeBlockOffset.x,
         y: gestureState.moveY + this.activeBlockOffset.y,
       };
@@ -39,22 +40,14 @@ const makeScrollable = (WrappedComponent) => {
       const clampX = (x) => clamp(x, 0, grid.layout.width - grid.blockWidth);
       const clampY = (y) => clamp(y, 0, grid.layout.height - grid.props.rowHeight);
 
-      if (!scrollDown && !scrollUp) {
-        const actualDragPosition = {
-          x: clampX(dragPosition.x),
-          y: clampY(dragPosition.y + this.scrollOffset.y + scrollBy),
-        };
-        activeBlock.currentPosition.setValue(actualDragPosition);
-        grid.moveBlock(originalPosition, actualDragPosition);
-        this.keepScrolling = clearInterval(this.keepScrolling);
-      } else {
+      this.keepScrolling = clearInterval(this.keepScrolling);
+      if (scrollDown || scrollUp) {
         const actualDragPosition = {
           x: clampX(dragPosition.x),
           y: clampY(dragPosition.y + this.scrollOffset.y),
         };
         activeBlock.currentPosition.setValue(actualDragPosition);
         grid.moveBlock(originalPosition, actualDragPosition);
-        this.keepScrolling = clearInterval(this.keepScrolling);
         this.keepScrolling = setInterval(() => {
           const activeBlock = grid.getActiveBlock();
           const originalPosition = activeBlock.origin;
@@ -66,6 +59,13 @@ const makeScrollable = (WrappedComponent) => {
           activeBlock.currentPosition.setValue(actualDragPosition);
           grid.moveBlock(originalPosition, actualDragPosition);
         }, 250);
+      } else {
+        const actualDragPosition = {
+          x: clampX(dragPosition.x),
+          y: clampY(dragPosition.y + this.scrollOffset.y + scrollBy),
+        };
+        activeBlock.currentPosition.setValue(actualDragPosition);
+        grid.moveBlock(originalPosition, actualDragPosition);
       }
 
       this.props.onMoveBlock(evt, gestureState, grid);
@@ -75,8 +75,16 @@ const makeScrollable = (WrappedComponent) => {
     onReleaseBlock = (evt, gestureState, grid) => {
       this.panCapture = false;
       this.keepScrolling = clearInterval(this.keepScrolling);
-      return this.props.onReleaseBlock(evt, gestureState, grid);
+      this.props.onReleaseBlock(evt, gestureState, grid);
+      return false;
     };
+
+    onActivateDrag = (...args) => {
+      this.panCapture = true;
+      this.forceUpdate();
+      this.props.onActivateDrag(...args);
+      return false;
+    }
 
     onLayout = ({ nativeEvent }) => {
       this.layout = nativeEvent.layout;
@@ -101,6 +109,7 @@ const makeScrollable = (WrappedComponent) => {
           onGrantBlock={this.onGrantBlock}
           onMoveBlock={this.onMoveBlock}
           onReleaseBlock={this.onReleaseBlock}
+          onActivateDrag={this.activateDrag}
         />
       </ScrollView>
     );
@@ -110,12 +119,14 @@ const makeScrollable = (WrappedComponent) => {
     onGrantBlock: func,
     onMoveBlock: func,
     onReleaseBlock: func,
+    onActivateDrag: func,
   };
 
   Scrollable.defaultProps = {
-    onGrantBlock: () => {},
-    onMoveBlock: () => {},
-    onReleaseBlock: () => {},
+    onGrantBlock: noop,
+    onMoveBlock: noop,
+    onReleaseBlock: noop,
+    onActivateDrag: noop,
   };
 
   return Scrollable;

@@ -1,23 +1,9 @@
-import React, { Component } from 'react';
+import React, { PureComponent } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
-import { noop, union } from 'lodash';
+import { noop } from 'lodash';
 import { shape, number, string, func, object, bool, oneOfType } from 'prop-types';
 
-class Cell extends Component {
-  shouldComponentUpdate = (nextProps) => {
-    if (this.props === nextProps) {
-      return false;
-    }
-    const [oldKeys, newKeys] = [Object.keys(this.props), Object.keys(nextProps)];
-    const keys = union(oldKeys, newKeys);
-    for (let key of keys) {
-      if (this.props[key] !== nextProps[key]) {
-        return true;
-      }
-    }
-    return false;
-  };
-
+class Cell extends PureComponent {
   getStyle = () => {
     const { rotation, position, active, width, height } = this.props;
     const rotate = rotation

@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
-import { Animated, PanResponder, StyleSheet, TouchableHighlightBase } from 'react-native';
-import { sortBy, clamp } from 'lodash';
+import { Animated, PanResponder, StyleSheet } from 'react-native';
+import { sortBy, clamp, noop } from 'lodash';
 import { animateTiming, animateWiggle } from './utils';
 import Cell from './Cell';
 import { shape, number, string, arrayOf, func, object } from 'prop-types';
@@ -19,18 +19,15 @@ class SortableGrid extends PureComponent {
     onPanResponderMove: (evt, gestureState) => this.onMoveBlock(evt, gestureState),
     onPanResponderRelease: (evt, gestureState) => this.onReleaseBlock(evt, gestureState),
   });
-
   activeBlockOffset = { x: 0, y: 0 };
   activeBlock = null;
-
   wiggle = new Animated.Value(0);
 
   UNSAFE_componentWillUpdate = (nextProps) => {
     this.layout.height = nextProps.rowHeight * Math.ceil(nextProps.data.length / nextProps.columns);
     this.blockWidth = Math.floor(this.blockWidth * this.props.columns) / nextProps.columns;
 
-    const oldBlockPositions = Object.keys(this.blockPositions);
-    oldBlockPositions.forEach(
+    Object.keys(this.blockPositions).forEach(
       (key) => !nextProps.data.find((child) => child.key === key) && delete this.blockPositions[key],
     );
 
@@ -48,13 +45,12 @@ class SortableGrid extends PureComponent {
           origin: blockPosition,
           currentPosition: new Animated.ValueXY(blockPosition),
         };
-      } else {
-        if (
-          this.blockPositions[key].origin.x === blockPosition.x &&
-          this.blockPositions[key].origin.y === blockPosition.y
-        ) {
-          return;
-        }
+        return;
+      }
+      if (
+        this.blockPositions[key].origin.x !== blockPosition.x ||
+        this.blockPositions[key].origin.y !== blockPosition.y
+      ) {
         this.getBlock(key).origin = blockPosition;
         this.getBlock(key).currentPosition.setValue(blockPosition);
       }
@@ -92,32 +88,34 @@ class SortableGrid extends PureComponent {
   };
 
   onReleaseBlock = (evt, gestureState) => {
-    this.panCapture = false;
     const override = this.props.onReleaseBlock(evt, gestureState, this);
     if (override) {
       return;
     }
+    this.panCapture = false;
     const activeBlock = this.getActiveBlock();
     const currentPosition = activeBlock.currentPosition;
     const originalPosition = activeBlock.origin;
-
     animateTiming(currentPosition, originalPosition, this.props.transitionDuration, this.onDeactivateDrag);
   };
 
   onActivateDrag = (key) => {
-    this.panCapture = true;
-    this.activeBlock = key;
-    const override = this.props.onActivateDrag(this);
+    const override = this.props.onActivateDrag(key, this);
     if (override) {
       return;
     }
+    this.panCapture = true;
+    this.activeBlock = key;
     animateWiggle(this.wiggle, 10, 0, this.props.transitionDuration);
     this.forceUpdate();
   };
 
   onDeactivateDrag = () => {
     const itemOrder = sortBy(this.itemOrder, (item) => item.order).map((item) => item.key);
-    this.props.onDeactivateDrag(itemOrder, this);
+    const override = this.props.onDeactivateDrag(itemOrder, this);
+    if (override) {
+      return;
+    }
     this.activeBlock = null;
   };
 
@@ -162,23 +160,19 @@ class SortableGrid extends PureComponent {
 
   blockPositionsSet = () => Object.keys(this.blockPositions).length === this.props.data.length;
 
-  onGridLayout = ({ nativeEvent }) => {
+  onLayout = ({ nativeEvent }) => {
     this.layout.width = nativeEvent.layout.width;
     this.blockWidth = nativeEvent.layout.width / this.props.columns;
     this.forceUpdate();
   };
 
-  getGridStyle = () => [
+  getStyle = () => [
     styles.grid,
     this.blockPositionsSet() && { height: this.layout.height + this.props.rowHeight },
   ];
 
   render = () => (
-    <Animated.View
-      style={this.getGridStyle()}
-      onLayout={this.onGridLayout}
-      {...this.panResponder.panHandlers}
-    >
+    <Animated.View style={this.getStyle()} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
       {this.props.data.map((item) => (
         <Cell
           key={item.key}
@@ -213,7 +207,6 @@ SortableGrid.propTypes = {
   columns: number,
   activationThreshold: number,
   transitionDuration: number,
-  style: object,
   renderItem: func.isRequired,
   onGrantBlock: func,
   onMoveBlock: func,
@@ -227,12 +220,11 @@ SortableGrid.defaultProps = {
   columns: 4,
   activationThreshold: 100,
   transitionDuration: 200,
-  style: {},
-  onGrantBlock: () => {},
-  onMoveBlock: () => {},
-  onReleaseBlock: () => {},
-  onActivateDrag: () => {},
-  onDeactivateDrag: () => {},
+  onGrantBlock: noop,
+  onMoveBlock: noop,
+  onReleaseBlock: noop,
+  onActivateDrag: noop,
+  onDeactivateDrag: noop,
 };
 
 export default SortableGrid;
