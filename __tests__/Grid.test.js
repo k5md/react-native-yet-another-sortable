@@ -8,18 +8,13 @@ test('exists', () => {
   const textPrefix = 'cell_text';
   const data = range(5).map(() => ({ value: uniqueId(textPrefix), key: uniqueId() }));
   const order = data.map(({ key }) => key);
-  const columns = 1;
-  const blockHeight = 10;
-
-  const { getAllByText } = render(
-    <SortableGrid columns={columns} order={order} blockHeight={blockHeight}>
-      {data.map(({ value, key }) => (
-        <View key={key}>
-          <Text>{value}</Text>
-        </View>
-      ))}
-    </SortableGrid>,
+  const renderItem = ({ value }) => (
+    <View>
+      <Text>{value}</Text>
+    </View>
   );
+
+  const { getAllByText } = render(<SortableGrid data={data} order={order} renderItem={renderItem} />);
 
   const renderedCells = getAllByText(new RegExp(textPrefix));
 

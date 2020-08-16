@@ -1,11 +1,18 @@
 # react-native-yet-another-sortable
 
-## What is it?
+[![Build Status](https://travis-ci.org/k5md/react-native-yet-another-sortable.svg?branch=master)](https://travis-ci.org/k5md/react-native-yet-another-sortable)
+
 A sortable scrollable grid / list component for React Native.
-- change number of columns and row height on the fly
-- much better performance
-- controllable order
-- auto-scroll when dragged item is close to the container's border
+* Change number of columns and row height on the fly
+* Much better performance (especially in debug, compared to alternatives)
+* Fast updates
+* Controllable order
+* Auto-scroll when dragged item is close to the container's border
+Essentially based on react-native-sortable-grid, it has some improvements and changes, that made me publish it as a separate package instead of making a PR.
+
+<p align="center">
+  <img src="https://s7.gifyu.com/images/rnyas.gif">
+</p>
 
 ## Getting Started
 ### Installation
@@ -13,8 +20,12 @@ A sortable scrollable grid / list component for React Native.
 npm install react-native-yet-another-sortable --save
 ```
 ### Usage
-Check out example project
+Check out [example project](https://github.com/k5md/react-native-yet-another-sortable/tree/master/example).
+ 
 ```javascript
+import React, { useState, useCallback } from 'react';
+import SortableGrid from 'react-native-yet-another-sortable';
+
 const Example = () => {
   const [data] = useState([
     { value: 0, key: 'key0' },
@@ -83,3 +94,8 @@ In order to develop the application or build android .apk from the sources one s
 
 ## Contributions
 PR are always welcome!
+
+## Todos
+* Better scroll-on-drag behaviour (smooth scroll without ugly timeouts and large scroll results in the dragged block trembling)
+* Refactoring while perserving the performance
+* Actual tests

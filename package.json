@@ -9,7 +9,7 @@
     "list",
     "performance"
   ],
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "Drag-and-drop sortable scrollable grid view for React Native.",
   "main": "src/index.js",
   "files": [
@@ -18,11 +18,12 @@
   "scripts": {
     "lint": "eslint ./ --ignore-path .gitignore",
     "lint:fix": "npm run lint -- --fix",
-    "test": "jest"
+    "test": "jest",
+    "semantic-release": "semantic-release"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/k5md/react-native-yet-another-sortable.git"
+    "url": "https://github.com/k5md/react-native-yet-another-sortable.git"
   },
   "author": "k5md",
   "license": "MIT",

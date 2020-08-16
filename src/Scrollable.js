@@ -84,7 +84,7 @@ const makeScrollable = (WrappedComponent) => {
       this.forceUpdate();
       this.props.onActivateDrag(...args);
       return false;
-    }
+    };
 
     onLayout = ({ nativeEvent }) => {
       this.layout = nativeEvent.layout;
