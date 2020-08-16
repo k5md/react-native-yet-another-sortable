@@ -1,6 +1,6 @@
 # react-native-yet-another-sortable
 
-[![Build Status](https://travis-ci.org/k5md/react-native-yet-another-sortable.svg?branch=master)](https://travis-ci.org/k5md/react-native-yet-another-sortable)
+[![Build Status](https://travis-ci.com/k5md/react-native-yet-another-sortable.svg?branch=release)](https://travis-ci.com/k5md/react-native-yet-another-sortable)
 
 A sortable scrollable grid / list component for React Native.
 * Change number of columns and row height on the fly
