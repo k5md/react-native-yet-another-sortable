@@ -1,10 +1,11 @@
 import React, { PureComponent } from 'react';
-import { Animated, PanResponder, StyleSheet } from 'react-native';
+import { Animated, PanResponder, StyleSheet, View } from 'react-native';
 import { animateTiming, animateWiggle, noop, clamp } from './utils';
 import Cell from './Cell';
 
 class SortableGrid extends PureComponent {
-  itemOrder = {};
+  keyToOrder = {};
+  keysByOrder = {};
   blockPositions = {};
   layout = { height: 0, width: 0 };
   blockWidth = 0;
@@ -18,44 +19,62 @@ class SortableGrid extends PureComponent {
     onPanResponderRelease: (evt, gestureState) => this.onReleaseBlock(evt, gestureState),
   });
   activeBlockOffset = { x: 0, y: 0 };
-  activeBlock = null;
+  activeBlockKey = null;
   wiggle = new Animated.Value(0);
 
-  UNSAFE_componentWillUpdate = (nextProps) => {
-    this.layout.height = nextProps.rowHeight * Math.ceil(nextProps.data.length / nextProps.columns);
-    this.blockWidth = Math.floor(this.blockWidth * this.props.columns) / nextProps.columns;
+  getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
+    x: (orderIndex % columns) * blockWidth,
+    y: Math.floor(orderIndex / columns) * rowHeight,
+  });
 
+  UNSAFE_componentWillUpdate = ({ rowHeight, columns, data, order }) => {
+    console.time('will');
+
+    this.layout.height = rowHeight * Math.ceil(data.length / columns);
+    this.blockWidth = this.layout.width / columns;
+
+    const nextKeys = new Set();
+    for (let i = 0; i < data.length; i += 1) {
+      nextKeys.add(data[i].key);
+    }
     for (const key in this.blockPositions) {
-      if (!nextProps.data.find((child) => child.key === key)) {
+      if (!nextKeys.has(key)) {
         delete this.blockPositions[key];
       }
     }
 
-    this.itemOrder = {};
+    const previousKeyToOrder = this.keyToOrder;
+    this.keyToOrder = {};
+    this.keysByOrder = order.slice();
+    const animations = [];
 
-    for (let index = 0; index < nextProps.order.length; index += 1) {
-      const key = nextProps.order[index];
-      this.itemOrder[key] = { key, order: index };
-      const blockPosition = {
-        x: (index % nextProps.columns) * this.blockWidth,
-        y: Math.floor(index / nextProps.columns) * nextProps.rowHeight,
-      };
-
-      if (!this.blockPositions[key]) {
-        this.blockPositions[key] = {
-          origin: blockPosition,
-          currentPosition: new Animated.ValueXY(blockPosition),
-        };
-        continue;
-      }
-      if (
-        this.blockPositions[key].origin.x !== blockPosition.x ||
-        this.blockPositions[key].origin.y !== blockPosition.y
-      ) {
-        this.getBlock(key).origin = blockPosition;
-        this.getBlock(key).currentPosition.setValue(blockPosition);
+    for (let orderIndex = 0; orderIndex < order.length; orderIndex += 1) {
+      const key = order[orderIndex];
+      const oldOrderIndex = previousKeyToOrder[key];
+      this.keyToOrder[key] = orderIndex;
+      const blockPosition = this.getTargetXY(orderIndex, columns, this.blockWidth, rowHeight);
+      if (this.blockPositions[key]) {
+        if (oldOrderIndex !== orderIndex) {
+          if (key !== this.activeBlockKey) {
+            animations.push(
+              Animated.timing(this.blockPositions[key], {
+                toValue: blockPosition,
+                duration: 0,
+                useNativeDriver: true,
+              })
+            );
+          } else {
+            this.getBlock(key).setValue(blockPosition);
+          }
+        }
+      } else {
+        this.blockPositions[key] = new Animated.ValueXY(blockPosition);
       }
     }
+    if (animations.length > 0) {
+      Animated.parallel(animations).start();
+    }
+    console.timeEnd('will');
   };
 
   onGrantBlock = (evt, gestureState) => {
@@ -63,7 +82,8 @@ class SortableGrid extends PureComponent {
     if (override) {
       return;
     }
-    const activeBlockOrigin = this.getActiveBlock().origin;
+    
+    const activeBlockOrigin = this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight);
     this.activeBlockOffset = {
       x: activeBlockOrigin.x - gestureState.x0,
       y: activeBlockOrigin.y - gestureState.y0,
@@ -84,8 +104,8 @@ class SortableGrid extends PureComponent {
       x: clamp(dragPosition.x, 0, this.layout.width - this.blockWidth),
       y: clamp(dragPosition.y, 0, this.layout.height - this.props.rowHeight),
     };
-    activeBlock.currentPosition.setValue(actualDragPosition);
-    this.moveBlock(activeBlock.origin, actualDragPosition);
+    activeBlock.setValue(actualDragPosition);
+    this.moveBlock(actualDragPosition);
   };
 
   onReleaseBlock = (evt, gestureState) => {
@@ -95,8 +115,8 @@ class SortableGrid extends PureComponent {
     }
     this.panCapture = false;
     const activeBlock = this.getActiveBlock();
-    const currentPosition = activeBlock.currentPosition;
-    const originalPosition = activeBlock.origin;
+    const currentPosition = activeBlock;
+    const originalPosition = this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight);
     animateTiming(currentPosition, originalPosition, this.props.transitionDuration, this.onDeactivateDrag);
   };
 
@@ -106,60 +126,51 @@ class SortableGrid extends PureComponent {
       return;
     }
     this.panCapture = true;
-    this.activeBlock = key;
+    this.activeBlockKey = key;
     animateWiggle(this.wiggle, 10, 0, this.props.transitionDuration);
     this.forceUpdate();
   };
 
   onDeactivateDrag = () => {
-    const itemOrder = Object.values(this.itemOrder).sort((a, b) => a.order - b.order).map((item) => item.key);
-    const override = this.props.onDeactivateDrag(itemOrder, this);
+    const override = this.props.onDeactivateDrag(this.keysByOrder, this);
     if (override) {
       return;
     }
-    this.activeBlock = null;
+    this.activeBlockKey = null;
   };
 
-  getDistance = (pointA, pointB) => {
-    const xDistance = pointA.x - pointB.x;
-    const yDistance = pointA.y - pointB.y;
-    return Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2));
-  };
-
-  moveBlock = (originalPosition, currentPosition) => {
-    const activeBlock = this.getActiveBlock();
-    let closest = this.activeBlock;
-    let closestDistance = this.getDistance(currentPosition, originalPosition);
-
-    for (let key in this.blockPositions) {
-      const block = this.blockPositions[key];
-      const blockPosition = block.origin;
-      const distance = this.getDistance(currentPosition, blockPosition);
-      if (distance < closestDistance && distance < this.blockWidth) {
-        closest = key;
-        closestDistance = distance;
-      }
-    }
-
-    if (closest === this.activeBlock) {
+  moveBlock = (currentPosition) => {
+    const row = clamp(Math.floor((currentPosition.y + this.props.rowHeight / 2) / this.blockWidth), 0, Math.ceil(this.keysByOrder.length / this.props.columns) - 1);
+    const col = clamp(Math.floor((currentPosition.x + this.blockWidth / 2) / this.blockWidth), 0, this.props.columns - 1);
+    const targetOrder = row * this.props.columns + col;
+    const closest = this.keysByOrder[targetOrder];
+    if (closest === this.activeBlockKey) {
       return;
     }
-
     const closestBlock = this.getBlock(closest);
-    animateTiming(closestBlock.currentPosition, activeBlock.origin, this.props.transitionDuration);
-    activeBlock.origin = closestBlock.origin;
-    closestBlock.origin = originalPosition;
+    animateTiming(closestBlock, this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight), this.props.transitionDuration);
 
-    const tempOrder = this.itemOrder[this.activeBlock].order;
-    this.itemOrder[this.activeBlock].order = this.itemOrder[closest].order;
-    this.itemOrder[closest].order = tempOrder;
+    [
+      this.keyToOrder[this.activeBlockKey],
+      this.keyToOrder[closest]
+    ] = [
+      this.keyToOrder[closest],
+      this.keyToOrder[this.activeBlockKey]
+    ];
+    [
+      this.keysByOrder[this.keyToOrder[this.activeBlockKey]],
+      this.keysByOrder[this.keyToOrder[closest]]
+    ] = [
+      this.keysByOrder[this.keyToOrder[closest]],
+      this.keysByOrder[this.keyToOrder[this.activeBlockKey]]
+    ];
   };
 
-  getActiveBlock = () => this.blockPositions[this.activeBlock];
+  getActiveBlock = () => this.blockPositions[this.activeBlockKey];
 
   getBlock = (key) => this.blockPositions[key];
 
-  blockPositionsSet = () => Object.keys(this.blockPositions).length === this.props.data.length;
+  blockPositionsSet = () => this.keysByOrder.length === this.props.order.length;
 
   onLayout = ({ nativeEvent }) => {
     this.layout.width = nativeEvent.layout.width;
@@ -173,7 +184,7 @@ class SortableGrid extends PureComponent {
   ];
 
   render = () => (
-    <Animated.View style={this.getStyle()} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
+    <View style={this.getStyle()} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
       {this.props.data.map((item) => (
         <Cell
           key={item.key}
@@ -182,12 +193,12 @@ class SortableGrid extends PureComponent {
           renderItem={this.props.renderItem}
           height={this.props.rowHeight}
           width={this.blockWidth}
-          active={this.activeBlock === item.key}
-          position={this.blockPositionsSet() && this.blockPositions[item.key].currentPosition}
-          rotation={this.activeBlock === item.key && this.wiggle}
+          active={this.activeBlockKey === item.key}
+          position={this.blockPositionsSet() && this.blockPositions[item.key]}
+          rotation={this.activeBlockKey === item.key && this.wiggle}
         />
       ))}
-    </Animated.View>
+    </View>
   );
 }
 
