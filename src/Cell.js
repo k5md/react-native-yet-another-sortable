@@ -1,7 +1,6 @@
 import React, { PureComponent } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
 import { noop } from 'lodash';
-import { shape, number, string, func, object, bool, oneOfType } from 'prop-types';
 
 class Cell extends PureComponent {
   getStyle = () => {
@@ -43,18 +42,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
-Cell.propTypes = {
-  item: shape({ key: string }).isRequired,
-  renderItem: func.isRequired,
-  activationTreshold: number,
-  onActivate: func,
-  height: number,
-  width: number,
-  active: bool,
-  position: oneOfType([object, bool]),
-  rotation: oneOfType([object, bool]),
-};
 
 Cell.defaultProps = {};
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { uniqueId, range } from 'lodash';
-import SortableGrid from '../src';
+import SortableGrid from 'react-native-yet-another-sortable';
 
 test('exists', () => {
   const textPrefix = 'cell_text';

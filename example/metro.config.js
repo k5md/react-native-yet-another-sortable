@@ -1,15 +1,16 @@
+const path = require('path');
+const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+
 /**
  * Metro configuration for React Native
  * https://github.com/facebook/react-native
- *
- * @format
  */
 
-const path = require('path');
-const escape = require('escape-string-regexp');
-const blacklist = require('metro-config/src/defaults/blacklist');
+const defaultConfig = getDefaultConfig(__dirname);
 
-module.exports = {
+const config = {
+  projectRoot: __dirname,
+  watchFolders: [path.resolve(__dirname, '..')],
   transformer: {
     getTransformOptions: async () => ({
       transform: {
@@ -18,10 +19,15 @@ module.exports = {
       },
     }),
   },
-  projectRoot: __dirname,
-  watchFolders: [path.resolve(__dirname, '..')],
+
   resolver: {
-    blacklistRE: blacklist([new RegExp(`^${escape(path.resolve(__dirname, '..', 'node_modules'))}/.*$`)]),
+    /*
+      NOTE: if parent project has any regular dependencies that have to be included,
+      this RegExp will block them, use only if parent project has only peer and dev dependencies
+    */
+    blockList: new RegExp(
+      `^${path.resolve(__dirname, '..', 'node_modules').replace(/[/\\\\]/g, '[/\\\\]')}.*`
+    ),
     extraNodeModules: new Proxy(
       {},
       {
@@ -29,9 +35,11 @@ module.exports = {
           if (target.hasOwnProperty(name)) {
             return target[name];
           }
-          return path.join(process.cwd(), `node_modules/${name}`);
+          return path.resolve(__dirname, 'node_modules', String(name));
         },
       },
     ),
   },
 };
+
+module.exports = mergeConfig(defaultConfig, config);

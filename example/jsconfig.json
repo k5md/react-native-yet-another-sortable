@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "react-native-yet-another-sortable": [ "../" ]
+    }
+  },
+  "include": [
+    "./",
+    "../"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/android",
+    "**/ios",
+  ]
+}

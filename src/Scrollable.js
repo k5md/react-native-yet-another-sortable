@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { ScrollView } from 'react-native';
 import { clamp, noop } from 'lodash';
-import { func } from 'prop-types';
 
 const makeScrollable = (WrappedComponent) => {
   class Scrollable extends Component {
@@ -114,13 +113,6 @@ const makeScrollable = (WrappedComponent) => {
       </ScrollView>
     );
   }
-
-  Scrollable.propTypes = {
-    onGrantBlock: func,
-    onMoveBlock: func,
-    onReleaseBlock: func,
-    onActivateDrag: func,
-  };
 
   Scrollable.defaultProps = {
     onGrantBlock: noop,

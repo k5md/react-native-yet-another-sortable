@@ -1,5 +1,5 @@
-import SortableGrid from './Grid';
-import makeScrollable from './Scrollable';
+import SortableGrid from './src/Grid';
+import makeScrollable from './src/Scrollable';
 
 const ScrollableSortableGrid = makeScrollable(SortableGrid);
 

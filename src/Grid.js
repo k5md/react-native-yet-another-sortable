@@ -3,7 +3,6 @@ import { Animated, PanResponder, StyleSheet } from 'react-native';
 import { sortBy, clamp, noop } from 'lodash';
 import { animateTiming, animateWiggle } from './utils';
 import Cell from './Cell';
-import { shape, number, string, arrayOf, func, object } from 'prop-types';
 
 class SortableGrid extends PureComponent {
   itemOrder = {};
@@ -199,21 +198,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
 });
-
-SortableGrid.propTypes = {
-  order: arrayOf(string).isRequired,
-  data: arrayOf(shape({ key: string })).isRequired,
-  rowHeight: number,
-  columns: number,
-  activationThreshold: number,
-  transitionDuration: number,
-  renderItem: func.isRequired,
-  onGrantBlock: func,
-  onMoveBlock: func,
-  onReleaseBlock: func,
-  onActivateDrag: func,
-  onDeactivateDrag: func,
-};
 
 SortableGrid.defaultProps = {
   rowHeight: 50,
