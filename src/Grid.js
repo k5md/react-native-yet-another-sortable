@@ -1,7 +1,6 @@
 import React, { PureComponent } from 'react';
 import { Animated, PanResponder, StyleSheet } from 'react-native';
-import { sortBy, clamp, noop } from 'lodash';
-import { animateTiming, animateWiggle } from './utils';
+import { animateTiming, animateWiggle, noop, clamp } from './utils';
 import Cell from './Cell';
 
 class SortableGrid extends PureComponent {
@@ -26,13 +25,16 @@ class SortableGrid extends PureComponent {
     this.layout.height = nextProps.rowHeight * Math.ceil(nextProps.data.length / nextProps.columns);
     this.blockWidth = Math.floor(this.blockWidth * this.props.columns) / nextProps.columns;
 
-    Object.keys(this.blockPositions).forEach(
-      (key) => !nextProps.data.find((child) => child.key === key) && delete this.blockPositions[key],
-    );
+    for (const key in this.blockPositions) {
+      if (!nextProps.data.find((child) => child.key === key)) {
+        delete this.blockPositions[key];
+      }
+    }
 
     this.itemOrder = {};
 
-    nextProps.order.forEach((key, index) => {
+    for (let index = 0; index < nextProps.order.length; index += 1) {
+      const key = nextProps.order[index];
       this.itemOrder[key] = { key, order: index };
       const blockPosition = {
         x: (index % nextProps.columns) * this.blockWidth,
@@ -44,7 +46,7 @@ class SortableGrid extends PureComponent {
           origin: blockPosition,
           currentPosition: new Animated.ValueXY(blockPosition),
         };
-        return;
+        continue;
       }
       if (
         this.blockPositions[key].origin.x !== blockPosition.x ||
@@ -53,7 +55,7 @@ class SortableGrid extends PureComponent {
         this.getBlock(key).origin = blockPosition;
         this.getBlock(key).currentPosition.setValue(blockPosition);
       }
-    });
+    }
   };
 
   onGrantBlock = (evt, gestureState) => {
@@ -110,7 +112,7 @@ class SortableGrid extends PureComponent {
   };
 
   onDeactivateDrag = () => {
-    const itemOrder = sortBy(this.itemOrder, (item) => item.order).map((item) => item.key);
+    const itemOrder = Object.values(this.itemOrder).sort((a, b) => a.order - b.order).map((item) => item.key);
     const override = this.props.onDeactivateDrag(itemOrder, this);
     if (override) {
       return;

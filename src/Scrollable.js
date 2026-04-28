@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { ScrollView } from 'react-native';
-import { clamp, noop } from 'lodash';
+import { noop, clamp } from './utils';
 
 const makeScrollable = (WrappedComponent) => {
   class Scrollable extends Component {

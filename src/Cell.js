@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
-import { noop } from 'lodash';
+import { noop } from './utils';
 
 class Cell extends PureComponent {
   getStyle = () => {
