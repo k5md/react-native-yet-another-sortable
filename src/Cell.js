@@ -1,36 +1,36 @@
-import React, { PureComponent } from 'react';
+import React, { memo } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
 import { noop } from './utils';
 
-class Cell extends PureComponent {
-  getStyle = () => {
-    const { rotation, position, active, width, height } = this.props;
-    const rotate = rotation
-      ? rotation.interpolate({ inputRange: [0, 360], outputRange: ['0 deg', '360 deg'] })
-      : '0deg';
-    const translates = position ? position.getTranslateTransform() : [];
-    const transform = translates.concat({ rotate });
-    const zIndex = active ? 1 : 0;
-    return { position: 'absolute', transform, height, width, justifyContent: 'center', zIndex };
-  };
+const getStyle = ({ position, rotation, active, height, width }) => {
+  const transform = position ? position.getTranslateTransform() : [];
+  if (rotation) {
+    transform.push({
+      rotate: rotation.interpolate({
+        inputRange: [ 0, 360 ],
+        outputRange: [ '0deg', '360deg' ],
+      }),
+    });
+  }    
+  const zIndex = active ? 1 : 0;
+  return { position: 'absolute', transform, height, width, justifyContent: 'center', zIndex };
+};
 
-  render() {
-    const { item, onActivate, activationTreshold, renderItem } = this.props;
-    const renderedItem = renderItem(item);
-    return (
-      <Animated.View style={this.getStyle()}>
-        <TouchableWithoutFeedback
-          style={styles.container}
-          delayLongPress={activationTreshold}
-          onLongPress={item.inactive ? noop : () => onActivate(item.key)}
-        >
-          <View style={styles.cell}>
-            <View style={styles.container}>{renderedItem}</View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Animated.View>
-    );
-  }
+export function Cell (props) {
+  const { item, onActivate, activationTreshold, renderItem } = props;
+  return (
+    <Animated.View style={getStyle(props)}>
+      <TouchableWithoutFeedback
+        style={styles.container}
+        delayLongPress={activationTreshold}
+        onLongPress={item.inactive ? noop : () => onActivate(item.key)}
+      >
+        <View style={styles.cell}>
+          <View style={styles.container}>{renderItem(item)}</View>
+        </View>
+      </TouchableWithoutFeedback>
+    </Animated.View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -43,6 +43,4 @@ const styles = StyleSheet.create({
   },
 });
 
-Cell.defaultProps = {};
-
-export default Cell;
+export default memo(Cell);

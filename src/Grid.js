@@ -28,8 +28,6 @@ class SortableGrid extends PureComponent {
   });
 
   UNSAFE_componentWillUpdate = ({ rowHeight, columns, data, order }) => {
-    console.time('will');
-
     this.layout.height = rowHeight * Math.ceil(data.length / columns);
     this.blockWidth = this.layout.width / columns;
 
@@ -39,6 +37,7 @@ class SortableGrid extends PureComponent {
     }
     for (const key in this.blockPositions) {
       if (!nextKeys.has(key)) {
+        this.blockPositions[key]?.stopAnimation();
         delete this.blockPositions[key];
       }
     }
@@ -59,7 +58,7 @@ class SortableGrid extends PureComponent {
             animations.push(
               Animated.timing(this.blockPositions[key], {
                 toValue: blockPosition,
-                duration: 0,
+                duration: 500,
                 useNativeDriver: true,
               })
             );
@@ -74,7 +73,6 @@ class SortableGrid extends PureComponent {
     if (animations.length > 0) {
       Animated.parallel(animations).start();
     }
-    console.timeEnd('will');
   };
 
   onGrantBlock = (evt, gestureState) => {
@@ -117,7 +115,7 @@ class SortableGrid extends PureComponent {
     const activeBlock = this.getActiveBlock();
     const currentPosition = activeBlock;
     const originalPosition = this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight);
-    animateTiming(currentPosition, originalPosition, this.props.transitionDuration, this.onDeactivateDrag);
+    if (activeBlock) animateTiming(currentPosition, originalPosition, this.props.transitionDuration, this.onDeactivateDrag);
   };
 
   onActivateDrag = (key) => {
@@ -140,7 +138,7 @@ class SortableGrid extends PureComponent {
   };
 
   moveBlock = (currentPosition) => {
-    const row = clamp(Math.floor((currentPosition.y + this.props.rowHeight / 2) / this.blockWidth), 0, Math.ceil(this.keysByOrder.length / this.props.columns) - 1);
+    const row = clamp(Math.floor((currentPosition.y + this.props.rowHeight / 2) / this.props.rowHeight), 0, Math.ceil(this.keysByOrder.length / this.props.columns) - 1);
     const col = clamp(Math.floor((currentPosition.x + this.blockWidth / 2) / this.blockWidth), 0, this.props.columns - 1);
     const targetOrder = row * this.props.columns + col;
     const closest = this.keysByOrder[targetOrder];
@@ -148,7 +146,7 @@ class SortableGrid extends PureComponent {
       return;
     }
     const closestBlock = this.getBlock(closest);
-    animateTiming(closestBlock, this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight), this.props.transitionDuration);
+    if (closestBlock) animateTiming(closestBlock, this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight), this.props.transitionDuration);
 
     [
       this.keyToOrder[this.activeBlockKey],

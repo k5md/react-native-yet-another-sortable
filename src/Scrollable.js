@@ -5,76 +5,66 @@ import { noop, clamp } from './utils';
 const makeScrollable = (WrappedComponent) => {
   class Scrollable extends Component {
     scrollView = React.createRef();
+    grid = null;
     scrollOffset = { x: 0, y: 0 };
     activeBlockOffset = { x: 0, y: 0 };
-    keepScrolling = false;
+    latestMoveX = 0;
+    latestMoveY = 0;
     layout = null;
+    panCapture = false;
 
     onGrantBlock = (evt, gestureState, grid) => {
       this.panCapture = true;
-      const activeBlockPosition = grid.getActiveBlock().origin;
+      this.grid = grid;
+      const activeBlockPosition = grid.getTargetXY(grid.keyToOrder[grid.activeBlockKey], grid.props.columns, grid.blockWidth, grid.props.rowHeight);
       const x = activeBlockPosition.x - gestureState.x0;
       const y = activeBlockPosition.y - gestureState.y0 - this.scrollOffset.y;
       this.activeBlockOffset = { x, y };
+      this.latestMoveX = gestureState.x0;
+      this.latestMoveY = gestureState.y0;
       this.props.onGrantBlock(evt, gestureState, grid);
       return false;
     };
 
     onMoveBlock = (evt, gestureState, grid) => {
+      this.grid = grid;
+      this.latestMoveX = gestureState.moveX;
+      this.latestMoveY = gestureState.moveY;
+
       const dragPosition = {
-        x: gestureState.moveX + this.activeBlockOffset.x,
-        y: gestureState.moveY + this.activeBlockOffset.y,
+        x: this.latestMoveX + this.activeBlockOffset.x,
+        y: this.latestMoveY + this.activeBlockOffset.y + this.scrollOffset.y,
       };
-      const activeBlock = grid.getActiveBlock();
-      const originalPosition = activeBlock.origin;
 
-      const scrollThreshold = grid.props.rowHeight / 5;
-      const scrollUp = dragPosition.y < scrollThreshold && this.scrollOffset.y > 0;
+      const scrollThreshold = grid.props.rowHeight;
+      const scrollUp = (gestureState.moveY - (this.layout ? this.layout.y : 0)) < scrollThreshold && this.scrollOffset.y > 0;
       const scrollDown =
-        dragPosition.y > this.layout.height - this.layout.y - scrollThreshold &&
-        dragPosition.y + this.scrollOffset.y + scrollThreshold < grid.layout.height;
+        (gestureState.moveY - (this.layout ? this.layout.y : 0)) > (this.layout ? this.layout.height : 0) - scrollThreshold &&
+        this.scrollOffset.y + (this.layout ? this.layout.height : 0) < grid.layout.height;
 
-      const scrollBy = (scrollUp * -1 + scrollDown * 1) * grid.props.rowHeight;
+      const actualDragPosition = {
+        x: clamp(dragPosition.x, 0, grid.layout.width - grid.blockWidth),
+        y: clamp(dragPosition.y, 0, grid.layout.height - grid.props.rowHeight),
+      };
 
-      const clampX = (x) => clamp(x, 0, grid.layout.width - grid.blockWidth);
-      const clampY = (y) => clamp(y, 0, grid.layout.height - grid.props.rowHeight);
+      grid.getActiveBlock().setValue(actualDragPosition);
+      grid.moveBlock(actualDragPosition);
 
-      this.keepScrolling = clearInterval(this.keepScrolling);
-      if (scrollDown || scrollUp) {
-        const actualDragPosition = {
-          x: clampX(dragPosition.x),
-          y: clampY(dragPosition.y + this.scrollOffset.y),
-        };
-        activeBlock.currentPosition.setValue(actualDragPosition);
-        grid.moveBlock(originalPosition, actualDragPosition);
-        this.keepScrolling = setInterval(() => {
-          const activeBlock = grid.getActiveBlock();
-          const originalPosition = activeBlock.origin;
-          const actualDragPosition = {
-            x: clampX(dragPosition.x),
-            y: clampY(dragPosition.y + this.scrollOffset.y + scrollBy),
-          };
-          this.scrollView.current.scrollTo({ y: this.scrollOffset.y + scrollBy });
-          activeBlock.currentPosition.setValue(actualDragPosition);
-          grid.moveBlock(originalPosition, actualDragPosition);
-        }, 250);
-      } else {
-        const actualDragPosition = {
-          x: clampX(dragPosition.x),
-          y: clampY(dragPosition.y + this.scrollOffset.y + scrollBy),
-        };
-        activeBlock.currentPosition.setValue(actualDragPosition);
-        grid.moveBlock(originalPosition, actualDragPosition);
+      if (scrollUp) {
+        this.scrollView.current.scrollTo({ y: Math.max(0, this.scrollOffset.y - 10), animated: true });
+      } else if (scrollDown) {
+        this.scrollView.current.scrollTo({ y: this.scrollOffset.y + 10, animated: true });
       }
 
       this.props.onMoveBlock(evt, gestureState, grid);
       return true;
-    };
+    }
 
     onReleaseBlock = (evt, gestureState, grid) => {
       this.panCapture = false;
-      this.keepScrolling = clearInterval(this.keepScrolling);
+      this.grid = null;
       this.props.onReleaseBlock(evt, gestureState, grid);
+      this.forceUpdate();
       return false;
     };
 
@@ -91,6 +81,21 @@ const makeScrollable = (WrappedComponent) => {
 
     onScroll = ({ nativeEvent }) => {
       this.scrollOffset = nativeEvent.contentOffset;
+
+      if (this.panCapture && this.grid && this.grid.activeBlockKey) {
+        const dragPosition = {
+          x: this.latestMoveX + this.activeBlockOffset.x,
+          y: this.latestMoveY + this.activeBlockOffset.y + this.scrollOffset.y,
+        };
+
+        const actualDragPosition = {
+          x: clamp(dragPosition.x, 0, this.grid.layout.width - this.grid.blockWidth),
+          y: clamp(dragPosition.y, 0, this.grid.layout.height - this.grid.props.rowHeight),
+        };
+
+        this.grid.getActiveBlock().setValue(actualDragPosition);
+        this.grid.moveBlock(actualDragPosition);
+      }
     };
 
     render = () => (
@@ -108,7 +113,7 @@ const makeScrollable = (WrappedComponent) => {
           onGrantBlock={this.onGrantBlock}
           onMoveBlock={this.onMoveBlock}
           onReleaseBlock={this.onReleaseBlock}
-          onActivateDrag={this.activateDrag}
+          onActivateDrag={this.onActivateDrag}
         />
       </ScrollView>
     );
