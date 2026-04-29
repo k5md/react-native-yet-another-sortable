@@ -12,6 +12,7 @@ const makeScrollable = (WrappedComponent) => {
     latestMoveY = 0;
     layout = null;
     panCapture = false;
+    autoScrollTimer = null;
 
     onGrantBlock = (evt, gestureState, grid) => {
       this.panCapture = true;
@@ -50,10 +51,8 @@ const makeScrollable = (WrappedComponent) => {
       grid.getActiveBlock().setValue(actualDragPosition);
       grid.moveBlock(actualDragPosition);
 
-      if (scrollUp) {
-        this.scrollView.current.scrollTo({ y: Math.max(0, this.scrollOffset.y - 10), animated: true });
-      } else if (scrollDown) {
-        this.scrollView.current.scrollTo({ y: this.scrollOffset.y + 10, animated: true });
+      if (!this.autoScrollTimer) {
+        this.handleAutoScroll();
       }
 
       this.props.onMoveBlock(evt, gestureState, grid);
@@ -61,6 +60,7 @@ const makeScrollable = (WrappedComponent) => {
     }
 
     onReleaseBlock = (evt, gestureState, grid) => {
+      this.stopAutoScroll();
       this.panCapture = false;
       this.grid = null;
       this.props.onReleaseBlock(evt, gestureState, grid);
@@ -95,7 +95,34 @@ const makeScrollable = (WrappedComponent) => {
 
         this.grid.getActiveBlock().setValue(actualDragPosition);
         this.grid.moveBlock(actualDragPosition);
+
+        if (!this.autoScrollTimer) {
+          this.handleAutoScroll();
+        }
       }
+    };
+
+    handleAutoScroll = () => {
+      if (!this.panCapture || !this.grid || !this.layout) {
+        this.stopAutoScroll();
+        return;
+      }
+      const threshold = this.grid.props.rowHeight;
+      const relY = this.latestMoveY - this.layout.y;
+      let diff = 0;
+      if (relY < threshold && this.scrollOffset.y > 0) diff = -15;
+      else if (relY > this.layout.height - threshold && this.scrollOffset.y + this.layout.height < this.grid.layout.height) diff = 15;
+      if (diff !== 0) {
+        this.scrollView.current.scrollTo({ y: this.scrollOffset.y + diff, animated: false });
+        this.autoScrollTimer = requestAnimationFrame(this.handleAutoScroll);
+      } else {
+        this.stopAutoScroll();
+      }
+    };
+    
+    stopAutoScroll = () => {
+      cancelAnimationFrame(this.autoScrollTimer);
+      this.autoScrollTimer = null;
     };
 
     render = () => (
@@ -106,6 +133,7 @@ const makeScrollable = (WrappedComponent) => {
         scrollEnabled={!this.panCapture}
         showsVerticalScrollIndicator={false}
         canCancelContentTouches={false}
+        scrollEventThrottle={16}
         removeClippedSubviews
       >
         <WrappedComponent

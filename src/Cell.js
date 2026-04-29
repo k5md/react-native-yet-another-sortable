@@ -2,18 +2,11 @@ import React, { memo } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
 import { noop } from './utils';
 
-const getStyle = ({ position, rotation, active, height, width }) => {
-  const transform = position ? position.getTranslateTransform() : [];
-  if (rotation) {
-    transform.push({
-      rotate: rotation.interpolate({
-        inputRange: [ 0, 360 ],
-        outputRange: [ '0deg', '360deg' ],
-      }),
-    });
-  }    
+const getStyle = ({ position, activeBlockStyle, active, height, width }) => {
+  const customStyle = (active && activeBlockStyle) ? activeBlockStyle : {}; 
+  const transform = (position ? position.getTranslateTransform() : []).concat(customStyle.transform || []);
   const zIndex = active ? 1 : 0;
-  return { position: 'absolute', transform, height, width, justifyContent: 'center', zIndex };
+  return { position: 'absolute', ...customStyle, transform, height, width, justifyContent: 'center', zIndex };
 };
 
 export function Cell (props) {

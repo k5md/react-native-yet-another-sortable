@@ -20,7 +20,7 @@ class SortableGrid extends PureComponent {
   });
   activeBlockOffset = { x: 0, y: 0 };
   activeBlockKey = null;
-  wiggle = new Animated.Value(0);
+  activationAnim = new Animated.Value(0);
 
   getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
     x: (orderIndex % columns) * blockWidth,
@@ -46,6 +46,8 @@ class SortableGrid extends PureComponent {
     this.keyToOrder = {};
     this.keysByOrder = order.slice();
     const animations = [];
+    const dimensionsChanged = columns !== this.props.columns || rowHeight !== this.props.rowHeight;
+
 
     for (let orderIndex = 0; orderIndex < order.length; orderIndex += 1) {
       const key = order[orderIndex];
@@ -58,7 +60,7 @@ class SortableGrid extends PureComponent {
             animations.push(
               Animated.timing(this.blockPositions[key], {
                 toValue: blockPosition,
-                duration: 500,
+                duration: 0,
                 useNativeDriver: true,
               })
             );
@@ -125,7 +127,7 @@ class SortableGrid extends PureComponent {
     }
     this.panCapture = true;
     this.activeBlockKey = key;
-    animateWiggle(this.wiggle, 10, 0, this.props.transitionDuration);
+    this.props.activationAnimation(this.activationAnim);
     this.forceUpdate();
   };
 
@@ -193,7 +195,7 @@ class SortableGrid extends PureComponent {
           width={this.blockWidth}
           active={this.activeBlockKey === item.key}
           position={this.blockPositionsSet() && this.blockPositions[item.key]}
-          rotation={this.activeBlockKey === item.key && this.wiggle}
+          activeBlockStyle={this.activeBlockKey === item.key ? (this.props.activeBlockStyle || { transform: [{ rotate: this.activationAnim.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] }) }] }) : null}
         />
       ))}
     </View>
@@ -220,6 +222,7 @@ SortableGrid.defaultProps = {
   onReleaseBlock: noop,
   onActivateDrag: noop,
   onDeactivateDrag: noop,
+  activationAnimation: (anim) => animateWiggle(anim, 10, 0, 200),
 };
 
 export default SortableGrid;
