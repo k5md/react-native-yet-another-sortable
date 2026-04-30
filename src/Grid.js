@@ -1,5 +1,5 @@
 import React, { PureComponent } from 'react';
-import { Animated, PanResponder, StyleSheet, View } from 'react-native';
+import { Animated, PanResponder, StyleSheet, View, ScrollView } from 'react-native';
 import { animateTiming, animateWiggle, noop, clamp } from './utils';
 import Cell from './Cell';
 
@@ -21,6 +21,16 @@ class SortableGrid extends PureComponent {
   activeBlockOffset = { x: 0, y: 0 };
   activeBlockKey = null;
   activationAnim = new Animated.Value(0);
+
+  //from scrollable
+  scrollView = React.createRef();
+  scrollOffset = { x: 0, y: 0 };
+
+  latestMoveX = 0;
+  latestMoveY = 0;
+
+  autoScrollTimer = null;
+  // end from scrollable
 
   getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
     x: (orderIndex % columns) * blockWidth,
@@ -46,7 +56,6 @@ class SortableGrid extends PureComponent {
     this.keyToOrder = {};
     this.keysByOrder = order.slice();
     const animations = [];
-    const dimensionsChanged = columns !== this.props.columns || rowHeight !== this.props.rowHeight;
 
 
     for (let orderIndex = 0; orderIndex < order.length; orderIndex += 1) {
@@ -82,12 +91,14 @@ class SortableGrid extends PureComponent {
     if (override) {
       return;
     }
-    
-    const activeBlockOrigin = this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight);
+    this.panCapture = true;
+    const activeBlockPosition = this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight);
     this.activeBlockOffset = {
-      x: activeBlockOrigin.x - gestureState.x0,
-      y: activeBlockOrigin.y - gestureState.y0,
+      x: activeBlockPosition.x - gestureState.x0,
+      y: activeBlockPosition.y - gestureState.y0 - this.scrollOffset.y,
     };
+    this.latestMoveX = gestureState.x0;
+    this.latestMoveY = gestureState.y0;
   };
 
   onMoveBlock = (evt, gestureState) => {
@@ -96,16 +107,21 @@ class SortableGrid extends PureComponent {
       return;
     }
     const dragPosition = {
-      x: gestureState.moveX + this.activeBlockOffset.x,
-      y: gestureState.moveY + this.activeBlockOffset.y,
+      x: this.activeBlockOffset.x + gestureState.moveX,
+      y: this.activeBlockOffset.y + gestureState.moveY + this.scrollOffset.y,
     };
-    const activeBlock = this.getActiveBlock();
     const actualDragPosition = {
       x: clamp(dragPosition.x, 0, this.layout.width - this.blockWidth),
       y: clamp(dragPosition.y, 0, this.layout.height - this.props.rowHeight),
     };
-    activeBlock.setValue(actualDragPosition);
+    this.latestMoveX = gestureState.moveX;
+    this.latestMoveY = gestureState.moveY;
+    this.getActiveBlock().setValue(actualDragPosition);
     this.moveBlock(actualDragPosition);
+
+    if (!this.autoScrollTimer) {
+      this.handleAutoScroll();
+    }
   };
 
   onReleaseBlock = (evt, gestureState) => {
@@ -113,6 +129,11 @@ class SortableGrid extends PureComponent {
     if (override) {
       return;
     }
+  // from scrollable
+    this.stopAutoScroll();
+    //
+  // end from scrollable
+
     this.panCapture = false;
     const activeBlock = this.getActiveBlock();
     const currentPosition = activeBlock;
@@ -137,6 +158,7 @@ class SortableGrid extends PureComponent {
       return;
     }
     this.activeBlockKey = null;
+    this.forceUpdate();
   };
 
   moveBlock = (currentPosition) => {
@@ -173,10 +195,66 @@ class SortableGrid extends PureComponent {
   blockPositionsSet = () => this.keysByOrder.length === this.props.order.length;
 
   onLayout = ({ nativeEvent }) => {
+    // from scrollable
+    this.layout = nativeEvent.layout;
+    // end from scrollable
+
     this.layout.width = nativeEvent.layout.width;
     this.blockWidth = nativeEvent.layout.width / this.props.columns;
     this.forceUpdate();
   };
+
+      onScroll = ({ nativeEvent }) => {
+      this.scrollOffset = nativeEvent.contentOffset;
+
+      if (this.panCapture && this.activeBlockKey) {
+        const dragPosition = {
+          x: this.latestMoveX + this.activeBlockOffset.x,
+          y: this.latestMoveY + this.activeBlockOffset.y + this.scrollOffset.y,
+        };
+
+        const actualDragPosition = {
+          x: clamp(dragPosition.x, 0, this.layout.width - this.blockWidth),
+          y: clamp(dragPosition.y, 0, this.layout.height - this.props.rowHeight),
+        };
+
+        this.getActiveBlock().setValue(actualDragPosition);
+        this.moveBlock(actualDragPosition);
+
+        if (!this.autoScrollTimer) {
+          this.handleAutoScroll();
+        }
+      }
+    };
+
+    handleAutoScroll = () => {
+      if (!this.panCapture || !this.layout) {
+        this.stopAutoScroll();
+        return;
+      }
+      const threshold = this.props.rowHeight;
+      const viewPortHeight = this.viewPortHeight;
+      const contentHeight = this.layout.height;
+      const relY = this.latestMoveY - (this.layout.y || 0);
+      let diff = 0;
+      if (relY < threshold && this.scrollOffset.y > 0) {
+        diff = -15;
+      } 
+      else if (relY > viewPortHeight - threshold && (this.scrollOffset.y + viewPortHeight) < contentHeight) {
+        diff = 15;
+      }
+      if (diff !== 0) {
+        this.scrollView.current.scrollTo({ y: this.scrollOffset.y + diff, animated: false });
+        this.autoScrollTimer = requestAnimationFrame(this.handleAutoScroll);
+      } else {
+        this.stopAutoScroll();
+      }
+    };
+    
+    stopAutoScroll = () => {
+      cancelAnimationFrame(this.autoScrollTimer);
+      this.autoScrollTimer = null;
+    };
 
   getStyle = () => [
     styles.grid,
@@ -184,21 +262,32 @@ class SortableGrid extends PureComponent {
   ];
 
   render = () => (
-    <View style={this.getStyle()} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
-      {this.props.data.map((item) => (
-        <Cell
-          key={item.key}
-          item={item}
-          onActivate={this.onActivateDrag}
-          renderItem={this.props.renderItem}
-          height={this.props.rowHeight}
-          width={this.blockWidth}
-          active={this.activeBlockKey === item.key}
-          position={this.blockPositionsSet() && this.blockPositions[item.key]}
-          activeBlockStyle={this.activeBlockKey === item.key ? (this.props.activeBlockStyle || { transform: [{ rotate: this.activationAnim.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] }) }] }) : null}
-        />
-      ))}
-    </View>
+    <ScrollView
+      ref={this.scrollView}
+      onLayout={(e) => { this.viewPortHeight = e.nativeEvent.layout.height; }} 
+      onScroll={this.onScroll}
+      scrollEnabled={!this.panCapture}
+      showsVerticalScrollIndicator={false}
+      canCancelContentTouches={false}
+      scrollEventThrottle={16}
+      removeClippedSubviews
+    >
+      <View style={this.getStyle()} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
+        {this.props.data.map((item) => (
+          <Cell
+            key={item.key}
+            item={item}
+            onActivate={this.onActivateDrag}
+            renderItem={this.props.renderItem}
+            height={this.props.rowHeight}
+            width={this.blockWidth}
+            active={this.activeBlockKey === item.key}
+            position={this.blockPositionsSet() && this.blockPositions[item.key]}
+            activeBlockStyle={this.activeBlockKey === item.key ? (this.props.activeBlockStyle || { transform: [{ rotate: this.activationAnim.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] }) }] }) : null}
+          />
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
