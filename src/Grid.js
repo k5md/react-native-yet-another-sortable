@@ -20,7 +20,6 @@ class SortableGrid extends PureComponent {
   });
   activeBlockOffset = { x: 0, y: 0 };
   activeBlockKey = null;
-  activationAnim = new Animated.Value(0);
 
   //from scrollable
   scrollView = React.createRef();
@@ -31,6 +30,10 @@ class SortableGrid extends PureComponent {
 
   autoScrollTimer = null;
   // end from scrollable
+
+  cells = {};
+  activation = new Animated.Value(0);
+  animations = [];
 
   getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
     x: (orderIndex % columns) * blockWidth,
@@ -138,7 +141,11 @@ class SortableGrid extends PureComponent {
     const activeBlock = this.getActiveBlock();
     const currentPosition = activeBlock;
     const originalPosition = this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight);
-    if (activeBlock) animateTiming(currentPosition, originalPosition, this.props.transitionDuration, this.onDeactivateDrag);
+    if (activeBlock) Animated.timing(currentPosition, {
+      toValue: originalPosition,
+      duration: this.props.transitionDuration,
+      useNativeDriver: true,
+    }).start(this.onDeactivateDrag);
   };
 
   onActivateDrag = (key) => {
@@ -148,7 +155,7 @@ class SortableGrid extends PureComponent {
     }
     this.panCapture = true;
     this.activeBlockKey = key;
-    this.props.activationAnimation(this.activationAnim);
+    animateWiggle(this.activation, 10, 0, 200);
     this.forceUpdate();
   };
 
@@ -170,8 +177,12 @@ class SortableGrid extends PureComponent {
       return;
     }
     const closestBlock = this.getBlock(closest);
-    if (closestBlock) animateTiming(closestBlock, this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight), this.props.transitionDuration);
-
+    if (closestBlock) 
+      Animated.timing(closestBlock, {
+      toValue: this.getTargetXY(this.keyToOrder[this.activeBlockKey], this.props.columns, this.blockWidth, this.props.rowHeight),
+      duration: this.props.transitionDuration,
+      useNativeDriver: true,
+    }).start();
     [
       this.keyToOrder[this.activeBlockKey],
       this.keyToOrder[closest]
@@ -275,6 +286,7 @@ class SortableGrid extends PureComponent {
       <View style={this.getStyle()} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
         {this.props.data.map((item) => (
           <Cell
+            ref={(ref) => { this.cells[item.key] = ref; }}
             key={item.key}
             item={item}
             onActivate={this.onActivateDrag}
@@ -282,8 +294,9 @@ class SortableGrid extends PureComponent {
             height={this.props.rowHeight}
             width={this.blockWidth}
             active={this.activeBlockKey === item.key}
-            position={this.blockPositionsSet() && this.blockPositions[item.key]}
-            activeBlockStyle={this.activeBlockKey === item.key ? (this.props.activeBlockStyle || { transform: [{ rotate: this.activationAnim.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] }) }] }) : null}
+            position={this.blockPositions[item.key]}
+            activeStyle={this.props.activeStyle}
+            activation={this.activation}
           />
         ))}
       </View>
@@ -311,7 +324,10 @@ SortableGrid.defaultProps = {
   onReleaseBlock: noop,
   onActivateDrag: noop,
   onDeactivateDrag: noop,
-  activationAnimation: (anim) => animateWiggle(anim, 10, 0, 200),
+  activeStyle: (animation) => ({
+    transform: [ { rotate: animation.interpolate({ inputRange: [0, 360], outputRange: [ '0deg', '360deg' ] }) } ],
+    elevation: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
+  }),
 };
 
 export default SortableGrid;

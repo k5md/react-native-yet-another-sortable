@@ -1,32 +1,47 @@
-import React, { memo } from 'react';
+import React, { memo, PureComponent } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
 import { noop } from './utils';
 
-const getStyle = ({ position, activeBlockStyle, active, height, width }) => {
-  const customStyle = (active && activeBlockStyle) ? activeBlockStyle : {}; 
-  const transform = (position ? position.getTranslateTransform() : []).concat(customStyle.transform || []);
-  const zIndex = active ? 1 : 0;
-  return { position: 'absolute', ...customStyle, transform, height, width, justifyContent: 'center', zIndex };
-};
+const getStyle = ({ height, width, position, active, activation, activeStyle }) => {
+  const style = {
+    zIndex: active ? 1 : 0,
+    height,
+    width,
+    transform: [],
+  };
+  if (position) style.transform = position.getTranslateTransform();
+  if (active && activeStyle) {
+    const { transform = [], ...rest } = activeStyle(activation);
+    style.transform.push(...transform);
+    return { ...style, ...rest };
+  }
+  return style;
+}
 
-export function Cell (props) {
-  const { item, onActivate, activationTreshold, renderItem } = props;
-  return (
-    <Animated.View style={getStyle(props)}>
-      <TouchableWithoutFeedback
-        style={styles.container}
-        delayLongPress={activationTreshold}
-        onLongPress={item.inactive ? noop : () => onActivate(item.key)}
-      >
-        <View style={styles.cell}>
-          <View style={styles.container}>{renderItem(item)}</View>
-        </View>
-      </TouchableWithoutFeedback>
-    </Animated.View>
-  );
+export class Cell extends React.Component {
+  render() {
+    const { item, onActivate, activationTreshold, renderItem } = this.props;
+    return (
+      <Animated.View style={[ styles.animatedContainer, getStyle(this.props) ]}>
+        <TouchableWithoutFeedback
+          style={styles.container}
+          delayLongPress={activationTreshold}
+          onLongPress={item.inactive ? noop : () => onActivate(item.key)}
+        >
+          <View style={styles.cell}>
+            <View style={styles.container}>{renderItem(item)}</View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Animated.View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
+  animatedContainer: {
+    position: 'absolute',
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
   },
@@ -36,4 +51,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default memo(Cell);
+export default Cell;

@@ -1,0 +1,65 @@
+name: Node.js Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install example dependencies
+        run: npm ci
+        working-directory: ./example
+      - run: npm run validate
+
+  build-and-pack:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+      - run: npm ci
+      - run: npm run package 
+      
+      - name: Upload Tarball
+        uses: actions/upload-artifact@v6
+        with:
+          name: package-tarball
+          path: dist/*.tgz
+          retention-days: 1
+
+  publish-npm:
+    needs: build-and-pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: https://registry.npmjs.org
+          
+      - name: Download Tarball
+        uses: actions/download-artifact@v6
+        with:
+          name: package-tarball
+          path: dist
+          
+      - name: Publish to NPM
+        run: |
+          cd dist
+          TARBALL=$(ls *.tgz)
+          npm publish $TARBALL --provenance --access public
