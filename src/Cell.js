@@ -2,11 +2,11 @@ import React, { memo, PureComponent } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
 import { noop } from './utils';
 
-const getStyle = ({ height, width, position, active, activation, activeStyle }) => {
+const getStyle = ({ height, position, active, activation, activeStyle, columns }) => {
   const style = {
     zIndex: active ? 1 : 0,
     height,
-    width,
+    width: 100 / columns + '%',
     transform: [],
   };
   if (position) style.transform = position.getTranslateTransform();
@@ -18,8 +18,9 @@ const getStyle = ({ height, width, position, active, activation, activeStyle }) 
   return style;
 }
 
-export class Cell extends React.Component {
+export class Cell extends React.PureComponent {
   render() {
+    console.log('render');
     const { item, onActivate, activationTreshold, renderItem } = this.props;
     return (
       <Animated.View style={[ styles.animatedContainer, getStyle(this.props) ]}>
