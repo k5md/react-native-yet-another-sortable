@@ -35,7 +35,7 @@ const App = () => {
     }
     const keyToRemove = order[order.length - 1];
     setData(data.filter(({ key }) => key !== keyToRemove));
-    setOrder(dropRight(order));
+    setOrder(dropRight(order, 1));
   }, [data, order]);
 
   const renderItem = useCallback(
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   block__text: {
     color: 'white',
-    fontSize: 25,
+    fontSize: 15,
   },
   grid: {
     flex: 3,
