@@ -1,6 +1,6 @@
-import React, { PureComponent, useCallback, useEffect, useMemo } from 'react';
+import React, { PureComponent } from 'react';
 import { Animated, PanResponder, StyleSheet, View, ScrollView } from 'react-native';
-import { animateTiming, animateWiggle, noop, clamp } from './utils';
+import { noop, clamp } from './utils';
 import Cell from './Cell';
 
 class SortableGrid extends PureComponent {
@@ -80,9 +80,7 @@ class SortableGrid extends PureComponent {
 
   onGrantBlock = (evt, gestureState) => {
     const override = this.props.onGrantBlock(evt, gestureState, this);
-    if (override) {
-      return;
-    }
+    if (override) return;
     this.panCapture = true;
     const activeBlockPosition = this.getTargetXY(this.keyToOrder[this.state.activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight);
     this.activeBlockOffset = {
@@ -118,9 +116,7 @@ class SortableGrid extends PureComponent {
 
   onReleaseBlock = (evt, gestureState) => {
     const override = this.props.onReleaseBlock(evt, gestureState, this);
-    if (override) {
-      return;
-    }
+    if (override) return;
   // from scrollable
     this.stopAutoScroll();
     //
@@ -139,29 +135,26 @@ class SortableGrid extends PureComponent {
 
   onActivateDrag = (key) => {
     const override = this.props.onActivateDrag(key, this);
-    if (override) {
-      return;
-    }
+    if (override) return;
     this.panCapture = true;
     this.setState({ activeBlockKey: key });
-    animateWiggle(this.activation, 10, 0, 200);
+    this.props.activeAnimation(this.activation, this);
   };
 
   onDeactivateDrag = () => {
-    this.setState({ activeBlockKey: null });
-    console.log({ ...this.keyToOrder })
     const order = Object.entries(this.keyToOrder).sort((a, b) => a[1] - b[1]).map((entry) => entry[0]);
     const override = this.props.onDeactivateDrag(order, this);
-    if (override) {
-      return;
-    }
-    
+    if (override) return;
+    this.setState({ activeBlockKey: null });
   };
 
   moveBlock = (currentPosition) => {
-    const row = clamp(Math.floor((currentPosition.y + this.props.rowHeight / 2) / this.props.rowHeight), 0, Math.ceil(this.props.data.length / this.props.columns) - 1);
-    const col = clamp(Math.floor((currentPosition.x + this.state.blockWidth / 2) / this.state.blockWidth), 0, this.props.columns - 1);
-    const targetOrder = row * this.props.columns + col;
+    const { data, rowHeight, columns } = this.props;
+    const { blockWidth, activeBlockKey } = this.state;
+
+    const row = clamp(Math.floor((currentPosition.y + rowHeight / 2) / rowHeight), 0, Math.ceil(data.length / columns) - 1);
+    const col = clamp(Math.floor((currentPosition.x + blockWidth / 2) / blockWidth), 0, columns - 1);
+    const targetOrder = row * columns + col;
     const closest = this.orderToKey[targetOrder];
     if (typeof closest === 'undefined') return;
     if (closest === this.state.activeBlockKey) {
@@ -169,24 +162,14 @@ class SortableGrid extends PureComponent {
     }
     const closestBlock = this.blockPositions[closest];
     Animated.timing(closestBlock, {
-      toValue: this.getTargetXY(this.keyToOrder[this.state.activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight),
+      toValue: this.getTargetXY(this.keyToOrder[activeBlockKey], columns, blockWidth, rowHeight),
       duration: this.props.transitionDuration,
       useNativeDriver: true,
     }).start();
-    [
-      this.keyToOrder[this.state.activeBlockKey],
-      this.keyToOrder[closest]
-    ] = [
-      this.keyToOrder[closest],
-      this.keyToOrder[this.state.activeBlockKey]
-    ];
-    [
-      this.orderToKey[this.keyToOrder[this.state.activeBlockKey]],
-      this.orderToKey[this.keyToOrder[closest]]
-    ] = [
-      this.orderToKey[this.keyToOrder[closest]],
-      this.orderToKey[this.keyToOrder[this.state.activeBlockKey]]
-    ];
+    const [ aKey, bKey ] = [ activeBlockKey, closest ];
+    [ this.keyToOrder[aKey], this.keyToOrder[bKey] ] = [ this.keyToOrder[bKey], this.keyToOrder[aKey] ];
+    const [ aOrder, bOrder ] = [ this.keyToOrder[aKey], this.keyToOrder[bKey] ];
+    [ this.orderToKey[aOrder], this.orderToKey[bOrder] ] = [ this.orderToKey[bOrder], this.orderToKey[aOrder] ];
   };
 
   onLayout = ({ nativeEvent }) => {
@@ -243,16 +226,12 @@ class SortableGrid extends PureComponent {
     this.autoScrollTimer = null;
   };
 
-  getStyle = () => [
-    styles.grid,
-    {
-      height: Math.ceil(this.props.data.length / this.props.columns) * this.props.rowHeight,
-      width: '100%',
-    },
-  ];
-
   render = () => {
     console.log('grid');
+    const { data, columns, rowHeight } = this.props;
+
+    const gridStyle = [ styles.grid, { height: Math.ceil(data.length / columns) * rowHeight } ];
+
     return (
       <ScrollView
         ref={this.scrollView}
@@ -262,9 +241,10 @@ class SortableGrid extends PureComponent {
         showsVerticalScrollIndicator={false}
         canCancelContentTouches={false}
         scrollEventThrottle={16}
+        removeClippedSubviews={true}
       >
-        <View style={this.getStyle()} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
-          {this.state.blockWidth ? this.props.data.map((item) => (
+        <View style={gridStyle} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
+          {this.state.blockWidth ? data.map((item) => (
               <Cell
                 key={item.key}
                 item={item}
@@ -292,6 +272,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    width: '100%',
   },
 });
 
@@ -309,6 +290,19 @@ SortableGrid.defaultProps = {
     transform: [ { rotate: animation.interpolate({ inputRange: [0, 360], outputRange: [ '0deg', '360deg' ] }) } ],
     elevation: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
   }),
+  activeAnimation: (animation) => {
+    requestAnimationFrame(() => {
+      animation.setValue(10);
+      Animated.spring(animation, {
+        toValue: 0,
+        velocity: 2000,
+        tension: 2000,
+        friction: 5,
+        useNativeDriver: true,
+      }).start();
+    });
+
+  }
 };
 
 export default SortableGrid;
