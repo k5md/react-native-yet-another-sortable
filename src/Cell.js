@@ -15,7 +15,6 @@ export class Cell extends React.PureComponent {
     const order = grid.keyToOrder[key];
     const coords = getTargetXY(order, columns, blockWidth, rowHeight);
     this.position = new Animated.ValueXY(coords);
-    grid.blockPositions[key] = this.position;
   }
 
   getStyle = ({ rowHeight, active, activation, activeStyle, blockWidth, grid }) => {
@@ -53,17 +52,11 @@ export class Cell extends React.PureComponent {
   }
 
   componentWillUnmount() {
-    const { grid, item: { key } } = this.props;
-    if (grid.blockPositions[key]) {
-      grid.blockPositions[key]?.stopAnimation();
-      delete grid.blockPositions[key];
+      const { grid, item: { key } } = this.props;
       const order = grid.keyToOrder[key];
       delete grid.keyToOrder[key];
       delete grid.orderToKey[order];
-      this.position?.stopAnimation();
-      delete this.position;
-    }
-
+      if (this.position && this.position.stopAnimation) this.position.stopAnimation();
   }
   
   render() {
