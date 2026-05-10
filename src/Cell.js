@@ -22,11 +22,14 @@ export class Cell extends React.PureComponent {
     const position = this.position;
     const style = {
       zIndex: active ? 1 : 0,
+      elevation: active ? 1 : 0,
       height: rowHeight,
       width: blockWidth,
       transform: [],
     };
-    if (position) style.transform = position.getTranslateTransform();
+    if (position) {
+      style.transform = position.getTranslateTransform();
+    }
     if (active && activeStyle) {
       const { transform = [], ...rest } = activeStyle(activation);
       style.transform.push(...transform);
@@ -50,7 +53,6 @@ export class Cell extends React.PureComponent {
   }
 
   componentWillUnmount() {
-    console.log('cell unmount');
     const { grid, item: { key } } = this.props;
     if (grid.blockPositions[key]) {
       grid.blockPositions[key]?.stopAnimation();
@@ -58,8 +60,10 @@ export class Cell extends React.PureComponent {
       const order = grid.keyToOrder[key];
       delete grid.keyToOrder[key];
       delete grid.orderToKey[order];
+      this.position?.stopAnimation();
       delete this.position;
     }
+
   }
   
   render() {
