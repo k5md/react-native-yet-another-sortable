@@ -24,11 +24,8 @@ export class Cell extends React.PureComponent {
       elevation: active ? 1 : 0,
       height: rowHeight,
       width: blockWidth,
-      transform: [],
+      transform: position.getTranslateTransform(),
     };
-    if (position) {
-      style.transform = position.getTranslateTransform();
-    }
     if (active && activeStyle) {
       const { transform = [], ...rest } = activeStyle(activation);
       style.transform.push(...transform);

@@ -178,7 +178,7 @@ class SortableGrid extends PureComponent {
 
   onLayout = ({ nativeEvent }) => {
     this.layout = nativeEvent.layout;
-    this.setState({ blockWidth: nativeEvent.layout.width / this.props.columns });
+    this.setState({ blockWidth: Math.floor(nativeEvent.layout.width / this.props.columns) });
   };
 
   onScroll = ({ nativeEvent }) => {
