@@ -48,8 +48,6 @@ class SortableGrid extends PureComponent {
   });
 
   componentDidUpdate(prevProps, prevState) {
-    console.log('didUpdate')
-
     const { rowHeight, columns } = this.props;
     if (this.props.columns !== prevProps.columns || this.props.rowHeight !== prevProps.rowHeight) {
       this.layout.height = this.props.rowHeight * Math.ceil(this.props.data.length / this.props.columns);
@@ -68,6 +66,7 @@ class SortableGrid extends PureComponent {
         this.orderToKey[order] = key;
         const blockPosition = this.getTargetXY(order, columns, this.state.blockWidth, rowHeight);
         if (this.cells[key]?.position) {
+          this.cells[key]?.position.stopAnimation();
           animations.push(
             Animated.timing(this.cells[key].position, {
               toValue: blockPosition,
@@ -80,7 +79,7 @@ class SortableGrid extends PureComponent {
       }
     }
     if (animations.length > 0) {
-      Animated.parallel(animations).start();
+      Animated.parallel(animations, { stopTogether: false }).start();
     }
   }
 
@@ -245,7 +244,6 @@ class SortableGrid extends PureComponent {
   }
 
   render = () => {
-    console.log('grid');
     const { data, columns, rowHeight } = this.props;
 
     const gridStyle = [ styles.grid, { height: Math.ceil(data.length / columns) * rowHeight } ];

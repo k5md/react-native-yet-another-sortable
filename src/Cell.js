@@ -9,15 +9,15 @@ const getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
 
 export class Cell extends React.PureComponent {
   constructor(props) {
-    console.log('cell constructor');
     super(props);
     const { grid, item: { key }, columns, rowHeight, blockWidth } = props;
     const order = grid.keyToOrder[key];
     const coords = getTargetXY(order, columns, blockWidth, rowHeight);
     this.position = new Animated.ValueXY(coords);
+    this.opacity = new Animated.Value(1);
   }
 
-  getStyle = ({ rowHeight, active, activation, activeStyle, blockWidth, grid }) => {
+  getStyle = ({ rowHeight, active, activation, activeStyle, blockWidth }) => {
     const position = this.position;
     const style = {
       zIndex: active ? 1 : 0,
@@ -25,6 +25,7 @@ export class Cell extends React.PureComponent {
       height: rowHeight,
       width: blockWidth,
       transform: position.getTranslateTransform(),
+      opacity: this.opacity,
     };
     if (active && activeStyle) {
       const { transform = [], ...rest } = activeStyle(activation);
@@ -35,16 +36,17 @@ export class Cell extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    console.log('cell update');
     const { grid, columns, item: { key }, rowHeight, blockWidth } = this.props;
     if (blockWidth !== prevProps.blockWidth || rowHeight !== prevProps.rowHeight) {
       const order = grid.keyToOrder[key];
       const coords = getTargetXY(order, columns, blockWidth, rowHeight);
-      Animated.timing(this.position, {
-        toValue: coords,
-        duration: 0,
-        useNativeDriver: true,
-      }).start();
+      this.opacity.stopAnimation();
+      this.position.stopAnimation();
+      Animated.sequence([
+        Animated.timing(this.opacity, { toValue: 0, duration: 1, useNativeDriver: true }),
+        Animated.timing(this.position, { toValue: coords, duration: 1, useNativeDriver: true }),
+        Animated.timing(this.opacity, { toValue: 1, duration: 1, useNativeDriver: true })
+      ]).start();
     }
   }
 
@@ -54,6 +56,7 @@ export class Cell extends React.PureComponent {
       delete grid.keyToOrder[key];
       delete grid.orderToKey[order];
       if (this.position && this.position.stopAnimation) this.position.stopAnimation();
+      if (this.opacity && this.opacity.stopAnimation) this.opacity.stopAnimation();
   }
   
   render() {
