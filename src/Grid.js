@@ -90,7 +90,7 @@ class SortableGrid extends PureComponent {
     this.panCapture = true;
     this.setState({ activeBlockKey: key }); // NOTE: we are not guaranteed that state.activeBlockKey will be set before onGrantBlock gets called
     this._activeBlockKey = key;
-    this.props.activeAnimation(this.activation, this);
+    this.activeAnimationRaf = this.props.activeAnimation(this.activation, this);
   };
 
   onGrantBlock = (evt, gestureState) => {
@@ -154,6 +154,7 @@ class SortableGrid extends PureComponent {
     if (override) return;
     this._activeBlockKey = null;
     this.setState({ activeBlockKey: null });
+    if (this.activeAnimationRaf) cancelAnimationFrame(this.activeAnimationRaf);
   };
 
   moveBlock = (currentPosition) => {
@@ -237,6 +238,12 @@ class SortableGrid extends PureComponent {
     this.autoScrollTimer = null;
   };
 
+  componentWillUnmount() {
+    if (this.activation && this.activation.stopAnimation) this.activation.stopAnimation();
+    this.stopAutoScroll();
+    if (this.activeAnimationRaf) cancelAnimationFrame(this.activeAnimationRaf);
+  }
+
   render = () => {
     console.log('grid');
     const { data, columns, rowHeight } = this.props;
@@ -304,7 +311,7 @@ SortableGrid.defaultProps = {
     elevation: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
   }),
   activeAnimation: (animation) => {
-    requestAnimationFrame(() => {
+    return requestAnimationFrame(() => {
       animation.setValue(10);
       Animated.spring(animation, {
         toValue: 0,
@@ -314,7 +321,6 @@ SortableGrid.defaultProps = {
         useNativeDriver: true,
       }).start();
     });
-
   }
 };
 
