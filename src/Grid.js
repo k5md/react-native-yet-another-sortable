@@ -17,6 +17,7 @@ class SortableGrid extends PureComponent {
     onPanResponderGrant: (evt, gestureState) => this.onGrantBlock(evt, gestureState),
     onPanResponderMove: (evt, gestureState) => this.onMoveBlock(evt, gestureState),
     onPanResponderRelease: (evt, gestureState) => this.onReleaseBlock(evt, gestureState),
+    onPanResponderTerminate: (evt, gestureState) => this.onReleaseBlock(evt, gestureState),
   });
   activeBlockOffset = { x: 0, y: 0 };
 
@@ -38,6 +39,8 @@ class SortableGrid extends PureComponent {
   };
 
   layout = null;
+
+  _activeBlockKey = null;
 
   getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
     x: (orderIndex % columns) * blockWidth,
@@ -85,7 +88,8 @@ class SortableGrid extends PureComponent {
     const override = this.props.onActivateDrag(key, this);
     if (override) return;
     this.panCapture = true;
-    this.setState({ activeBlockKey: key });
+    this.setState({ activeBlockKey: key }); // NOTE: we are not guaranteed that state.activeBlockKey will be set before onGrantBlock gets called
+    this._activeBlockKey = key;
     this.props.activeAnimation(this.activation, this);
   };
 
@@ -93,7 +97,7 @@ class SortableGrid extends PureComponent {
     const override = this.props.onGrantBlock(evt, gestureState, this);
     if (override) return;
     this.panCapture = true;
-    const activeBlockPosition = this.getTargetXY(this.keyToOrder[this.state.activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight);
+    const activeBlockPosition = this.getTargetXY(this.keyToOrder[this._activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight);
     this.activeBlockOffset = {
       x: activeBlockPosition.x - gestureState.x0,
       y: activeBlockPosition.y - gestureState.y0 - this.scrollOffset.y,
@@ -116,7 +120,7 @@ class SortableGrid extends PureComponent {
     };
     this.latestMove = { x: gestureState.moveX, y: gestureState.moveY };
 
-    this.cells[this.state.activeBlockKey].position.setValue(actualDragPosition);
+    this.cells[this._activeBlockKey].position.setValue(actualDragPosition);
 
     this.moveBlock(actualDragPosition);
 
@@ -134,9 +138,9 @@ class SortableGrid extends PureComponent {
   // end from scrollable
 
     this.panCapture = false;
-    const activeBlock = this.cells[this.state.activeBlockKey].position;
+    const activeBlock = this.cells[this._activeBlockKey].position;
     const currentPosition = activeBlock;
-    const originalPosition = this.getTargetXY(this.keyToOrder[this.state.activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight);
+    const originalPosition = this.getTargetXY(this.keyToOrder[this._activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight);
     if (activeBlock) Animated.timing(currentPosition, {
       toValue: originalPosition,
       duration: this.props.transitionDuration,
@@ -148,19 +152,21 @@ class SortableGrid extends PureComponent {
     const order = Object.entries(this.keyToOrder).sort((a, b) => a[1] - b[1]).map((entry) => entry[0]);
     const override = this.props.onDeactivateDrag(order, this);
     if (override) return;
+    this._activeBlockKey = null;
     this.setState({ activeBlockKey: null });
   };
 
   moveBlock = (currentPosition) => {
     const { data, rowHeight, columns } = this.props;
-    const { blockWidth, activeBlockKey } = this.state;
+    const { blockWidth } = this.state;
+    const activeBlockKey = this._activeBlockKey;
 
     const row = clamp(Math.floor((currentPosition.y + rowHeight / 2) / rowHeight), 0, Math.ceil(data.length / columns) - 1);
     const col = clamp(Math.floor((currentPosition.x + blockWidth / 2) / blockWidth), 0, columns - 1);
     const targetOrder = row * columns + col;
     const closest = this.orderToKey[targetOrder];
     if (typeof closest === 'undefined') return;
-    if (closest === this.state.activeBlockKey) {
+    if (closest === activeBlockKey) {
       return;
     }
     
@@ -183,8 +189,9 @@ class SortableGrid extends PureComponent {
 
   onScroll = ({ nativeEvent }) => {
     this.scrollOffset = nativeEvent.contentOffset;
+    const activeBlockKey = this._activeBlockKey;
 
-    if (this.panCapture && this.state.activeBlockKey) {
+    if (this.panCapture && activeBlockKey !== null) {
       const dragPosition = {
         x: this.latestMove.x + this.activeBlockOffset.x,
         y: this.latestMove.y + this.activeBlockOffset.y + this.scrollOffset.y,
@@ -195,7 +202,7 @@ class SortableGrid extends PureComponent {
         y: clamp(dragPosition.y, 0, this.layout.height - this.props.rowHeight),
       };
 
-      this.cells[this.state.activeBlockKey].position.setValue(actualDragPosition);
+      this.cells[activeBlockKey].position.setValue(actualDragPosition);
       this.moveBlock(actualDragPosition);
 
       if (!this.autoScrollTimer) {
@@ -291,6 +298,7 @@ SortableGrid.defaultProps = {
   onReleaseBlock: noop,
   onActivateDrag: noop,
   onDeactivateDrag: noop,
+  onCancelBlock: noop,
   activeStyle: (animation) => ({
     transform: [ { rotate: animation.interpolate({ inputRange: [0, 360], outputRange: [ '0deg', '360deg' ] }) } ],
     elevation: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
