@@ -2,17 +2,11 @@ import React, { memo, PureComponent } from 'react';
 import { Animated, TouchableWithoutFeedback, View, StyleSheet } from 'react-native';
 import { noop } from './utils';
 
-const getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
-  x: (orderIndex % columns) * blockWidth,
-  y: Math.floor(orderIndex / columns) * rowHeight,
-});
-
 export class Cell extends React.PureComponent {
   constructor(props) {
     super(props);
-    const { grid, item: { key }, columns, rowHeight, blockWidth } = props;
-    const order = grid.keyToOrder[key];
-    const coords = getTargetXY(order, columns, blockWidth, rowHeight);
+    const { grid, item: { key } } = props;
+    const coords = grid.getPositionByKey(key);
     this.position = new Animated.ValueXY(coords);
     this.opacity = new Animated.Value(1);
   }
@@ -36,10 +30,9 @@ export class Cell extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    const { grid, columns, item: { key }, rowHeight, blockWidth } = this.props;
+    const { grid, item: { key }, rowHeight, blockWidth } = this.props;
     if (blockWidth !== prevProps.blockWidth || rowHeight !== prevProps.rowHeight) {
-      const order = grid.keyToOrder[key];
-      const coords = getTargetXY(order, columns, blockWidth, rowHeight);
+      const coords = grid.getPositionByKey(key);
       this.opacity.stopAnimation();
       this.position.stopAnimation();
       Animated.sequence([

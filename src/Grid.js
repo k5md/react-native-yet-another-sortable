@@ -42,10 +42,12 @@ class SortableGrid extends PureComponent {
 
   _activeBlockKey = null;
 
-  getTargetXY = (orderIndex, columns, blockWidth, rowHeight) => ({
-    x: (orderIndex % columns) * blockWidth,
-    y: Math.floor(orderIndex / columns) * rowHeight,
-  });
+  getPositionByOrder = (orderIndex) => ({
+    x: (orderIndex % this.props.columns) * this.state.blockWidth,
+    y: Math.floor(orderIndex / this.props.columns) * this.props.rowHeight,
+  });  
+
+  getPositionByKey = (key) => this.getPositionByOrder(this.keyToOrder[key]);
 
   componentDidUpdate(prevProps, prevState) {
     const { rowHeight, columns } = this.props;
@@ -64,7 +66,7 @@ class SortableGrid extends PureComponent {
       if (this.keyToOrder[key] !== order) {
         this.keyToOrder[key] = order;
         this.orderToKey[order] = key;
-        const blockPosition = this.getTargetXY(order, columns, this.state.blockWidth, rowHeight);
+        const blockPosition = this.getPositionByOrder(order);
         if (this.cells[key]?.position) {
           this.cells[key]?.position.stopAnimation();
           animations.push(
@@ -96,7 +98,7 @@ class SortableGrid extends PureComponent {
     const override = this.props.onGrantBlock(evt, gestureState, this);
     if (override) return;
     this.panCapture = true;
-    const activeBlockPosition = this.getTargetXY(this.keyToOrder[this._activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight);
+    const activeBlockPosition = this.getPositionByOrder(this.keyToOrder[this._activeBlockKey]);
     this.activeBlockOffset = {
       x: activeBlockPosition.x - gestureState.x0,
       y: activeBlockPosition.y - gestureState.y0 - this.scrollOffset.y,
@@ -139,7 +141,7 @@ class SortableGrid extends PureComponent {
     this.panCapture = false;
     const activeBlock = this.cells[this._activeBlockKey].position;
     const currentPosition = activeBlock;
-    const originalPosition = this.getTargetXY(this.keyToOrder[this._activeBlockKey], this.props.columns, this.state.blockWidth, this.props.rowHeight);
+    const originalPosition = this.getPositionByKey(this._activeBlockKey);
     if (activeBlock) Animated.timing(currentPosition, {
       toValue: originalPosition,
       duration: this.props.transitionDuration,
@@ -172,7 +174,7 @@ class SortableGrid extends PureComponent {
     
     const closestBlock = this.cells[closest].position;
     Animated.timing(closestBlock, {
-      toValue: this.getTargetXY(this.keyToOrder[activeBlockKey], columns, blockWidth, rowHeight),
+      toValue: this.getPositionByKey(activeBlockKey),
       duration: this.props.transitionDuration,
       useNativeDriver: true,
     }).start();
