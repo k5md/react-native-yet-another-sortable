@@ -9,10 +9,11 @@ export class Cell extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    const { rowHeight, blockWidth } = this.props;
+    const { rowHeight, blockWidth, grid, item: { key } } = this.props;
     if (blockWidth !== prevProps.blockWidth || rowHeight !== prevProps.rowHeight) {
       this.stopAnimation();
-      this.runAnimation();
+      const position = grid.getPositionByKey(key);
+      this.runAnimation({ position, hide: true });
     }
   }
 
@@ -26,19 +27,18 @@ export class Cell extends React.PureComponent {
 
   initAnimation() {
     const { grid, item: { key } } = this.props;
-    const coords = grid.getPositionByKey(key);
-    this.position = new Animated.ValueXY(coords);
+    const position = grid.getPositionByKey(key);
+    this.position = new Animated.ValueXY(position);
     this.opacity = new Animated.Value(1);
   }
 
-  runAnimation() {
-    const { grid, item: { key } } = this.props;
-    const coords = grid.getPositionByKey(key);
-    Animated.sequence([
-      Animated.timing(this.opacity, { toValue: 0, duration: 1, useNativeDriver: true }),
-      Animated.timing(this.position, { toValue: coords, duration: 1, useNativeDriver: true }),
-      Animated.timing(this.opacity, { toValue: 1, duration: 1, useNativeDriver: true })
-    ]).start();
+  runAnimation({ position, cb = noop, duration = 1, hide = false }) {
+    if (hide) return Animated.sequence([
+      Animated.timing(this.opacity, { toValue: 0, duration, useNativeDriver: true }),
+      Animated.timing(this.position, { toValue: position, duration, useNativeDriver: true }),
+      Animated.timing(this.opacity, { toValue: 1, duration, useNativeDriver: true }),
+    ]).start(cb);
+    Animated.timing(this.position, { toValue: position, duration, useNativeDriver: true }).start(cb);
   }
 
   stopAnimation() {
@@ -46,7 +46,7 @@ export class Cell extends React.PureComponent {
     if (this.opacity && this.opacity.stopAnimation) this.opacity.stopAnimation();
   }
 
-  getStyle = () => {
+  getStyle() {
     const { rowHeight, active, activation, getActiveStyle, blockWidth } = this.props;
     const style = {
       zIndex: active ? 1 : 0,

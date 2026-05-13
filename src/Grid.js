@@ -34,42 +34,34 @@ class SortableGrid extends PureComponent {
 
   activation = new Animated.Value(0);
 
-  getPositionByOrder = (orderIndex) => ({
-    x: (orderIndex % this.props.columns) * this.state.blockWidth,
-    y: Math.floor(orderIndex / this.props.columns) * this.props.rowHeight,
-  });  
+  getPositionByOrder = (orderIndex) => {
+    const { columns, rowHeight } = this.props;
+    const { blockWidth } = this.state;
+    const x = (orderIndex % columns) * blockWidth;
+    const y = Math.floor(orderIndex / columns) * rowHeight;
+    if (Number.isNaN(x) || Number.isNaN(y)) return undefined;
+    return ({ x, y });
+  };
 
   getPositionByKey = (key) => this.getPositionByOrder(this.keyToOrder[key]);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { rowHeight, columns } = this.props;
-    if (this.props.columns !== prevProps.columns || this.props.rowHeight !== prevProps.rowHeight) {
-      this.layout.height = this.props.rowHeight * Math.ceil(this.props.data.length / this.props.columns);
-      this.setState({ blockWidth: Math.floor(this.layout.width / this.props.columns) });
+  componentDidUpdate(prevProps) {
+    const { rowHeight, columns, data, order } = this.props;
+    if (columns !== prevProps.columns || rowHeight !== prevProps.rowHeight) {
+      this.layout.height = rowHeight * Math.ceil(data.length / columns);
+      this.setState({ blockWidth: Math.floor(this.layout.width / columns) });
       return;
     }
-    const animations = [];
-    for (let i = 0; i < this.props.order.length; i += 1) {
-      const key = this.props.order[i];
-      const order = i;
-      if (this.keyToOrder[key] !== order) {
-        this.keyToOrder[key] = order;
-        this.orderToKey[order] = key;
-        const blockPosition = this.getPositionByOrder(order);
-        if (this.cells[key]?.position) {
-          this.cells[key].position?.stopAnimation();
-          animations.push(
-            Animated.timing(this.cells[key].position, {
-              toValue: blockPosition,
-              duration: 0,
-              useNativeDriver: true,
-            })
-          );
-        }
+    for (let i = 0; i < order.length; i += 1) {
+      const key = order[i];
+      if (this.keyToOrder[key] === i) continue;
+      this.keyToOrder[key] = i;
+      this.orderToKey[i] = key;
+      const position = this.getPositionByOrder(i);
+      if (position && this.cells[key]) {
+        this.cells[key].stopAnimation();
+        this.cells[key].runAnimation({ position, hide: true });
       }
-    }
-    if (animations.length > 0) {
-      Animated.parallel(animations, { stopTogether: false }).start();
     }
   }
 
@@ -114,13 +106,8 @@ class SortableGrid extends PureComponent {
     if (override) return;
     this.stopAutoScroll();
     this.panCapture = false;
-    const currentPosition = this.cells[this._activeBlockKey].position;
-    const originalPosition = this.getPositionByKey(this._activeBlockKey);
-    if (currentPosition) Animated.timing(currentPosition, {
-      toValue: originalPosition,
-      duration: this.props.transitionDuration,
-      useNativeDriver: true,
-    }).start(this.onDeactivateDrag);
+    const position = this.getPositionByKey(this._activeBlockKey);
+    this.cells[this._activeBlockKey]?.runAnimation({ position, cb: this.onDeactivateDrag, duration: this.props.transitionDuration });
   };
 
   onDeactivateDrag = () => {
@@ -135,24 +122,14 @@ class SortableGrid extends PureComponent {
   moveBlock = (currentPosition) => {
     const { data, rowHeight, columns } = this.props;
     const { blockWidth } = this.state;
-    const activeBlockKey = this._activeBlockKey;
-
-    const row = clamp(Math.floor((currentPosition.y + rowHeight / 2) / rowHeight), 0, Math.ceil(data.length / columns) - 1);
-    const col = clamp(Math.floor((currentPosition.x + blockWidth / 2) / blockWidth), 0, columns - 1);
+    const row = clamp(Math.round(currentPosition.y / rowHeight), 0, Math.ceil(data.length / columns) - 1);
+    const col = clamp(Math.round(currentPosition.x / blockWidth), 0, columns - 1);
     const targetOrder = row * columns + col;
     const closest = this.orderToKey[targetOrder];
-    if (typeof closest === 'undefined') return;
-    if (closest === activeBlockKey) {
-      return;
-    }
-    
-    const closestBlock = this.cells[closest].position;
-    Animated.timing(closestBlock, {
-      toValue: this.getPositionByKey(activeBlockKey),
-      duration: this.props.transitionDuration,
-      useNativeDriver: true,
-    }).start();
-    const [ aKey, bKey ] = [ activeBlockKey, closest ];
+    if (typeof closest === 'undefined' || closest === this._activeBlockKey) return;
+    const position = this.getPositionByKey(this._activeBlockKey);
+    this.cells[closest].runAnimation({ position, duration: this.props.transitionDuration });
+    const [ aKey, bKey ] = [ this._activeBlockKey, closest ];
     [ this.keyToOrder[aKey], this.keyToOrder[bKey] ] = [ this.keyToOrder[bKey], this.keyToOrder[aKey] ];
     const [ aOrder, bOrder ] = [ this.keyToOrder[aKey], this.keyToOrder[bKey] ];
     [ this.orderToKey[aOrder], this.orderToKey[bOrder] ] = [ this.orderToKey[bOrder], this.orderToKey[aOrder] ];
@@ -197,6 +174,10 @@ class SortableGrid extends PureComponent {
       this.stopAutoScroll();
     }
   };
+
+  stopAnimation() {
+    if (this.activation && this.activation.stopAnimation) this.activation.stopAnimation();
+  }
     
   stopAutoScroll = () => {
     cancelAnimationFrame(this.autoScrollTimer);
@@ -204,7 +185,7 @@ class SortableGrid extends PureComponent {
   };
 
   componentWillUnmount() {
-    if (this.activation && this.activation.stopAnimation) this.activation.stopAnimation();
+    this.stopAnimation();
     this.stopAutoScroll();
     if (this.activeAnimationRaf) cancelAnimationFrame(this.activeAnimationRaf);
   }
@@ -227,20 +208,20 @@ class SortableGrid extends PureComponent {
       >
         <View style={gridStyle} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
           {this.state.blockWidth ? data.map((item) => (
-              <Cell
-                ref={(el) => (this.cells[item.key] = el)}
-                key={item.key}
-                item={item}
-                onActivate={this.onActivateDrag}
-                renderItem={this.props.renderItem}
-                rowHeight={this.props.rowHeight}
-                active={this.state.activeBlockKey === item.key}
-                getActiveStyle={this.props.getActiveStyle}
-                activation={this.activation}
-                columns={this.props.columns}
-                blockWidth={this.state.blockWidth}
-                grid={this}
-              />
+            <Cell
+              ref={(el) => (this.cells[item.key] = el)}
+              key={item.key}
+              item={item}
+              onActivate={this.onActivateDrag}
+              renderItem={this.props.renderItem}
+              rowHeight={this.props.rowHeight}
+              active={this.state.activeBlockKey === item.key}
+              getActiveStyle={this.props.getActiveStyle}
+              activation={this.activation}
+              columns={this.props.columns}
+              blockWidth={this.state.blockWidth}
+              grid={this}
+            />
         )) : null}
         </View>
       </ScrollView>
