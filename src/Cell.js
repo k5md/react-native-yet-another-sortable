@@ -63,15 +63,19 @@ export class Cell extends React.PureComponent {
     }
     return style;
   }
+
+  onActivate = () => {
+    this.props.onActivate(this.props.item.key);
+  };
   
   render() {
-    const { item, onActivate, activationTreshold, renderItem } = this.props;
+    const { item, activationTreshold, renderItem } = this.props;
     return (
       <Animated.View style={[ styles.animatedContainer, this.getStyle() ]}>
         <TouchableWithoutFeedback
           style={styles.container}
           delayLongPress={activationTreshold}
-          onLongPress={item.inactive ? noop : () => onActivate(item.key)}
+          onLongPress={item.inactive ? noop : this.onActivate}
         >
           <View style={styles.cell}>
             <View style={styles.container}>{renderItem(item)}</View>

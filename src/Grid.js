@@ -7,15 +7,13 @@ class SortableGrid extends PureComponent {
   keyToOrder = {};
   orderToKey = {};
   cells = {};
-
   activeBlockOffset = { x: 0, y: 0 };
-  _activeBlockKey = null;
+  _activeBlockKey = null; // NOTE: we are not guaranteed that state.activeBlockKey will be set before onGrantBlock gets called
   state = {
     activeBlockKey: null,
     blockWidth: 0,
   };
   layout = null;
-
   panCapture = false;
   panResponder = PanResponder.create({
     onStartShouldSetPanResponderCapture: () => false,
@@ -26,13 +24,12 @@ class SortableGrid extends PureComponent {
     onPanResponderRelease: (evt, gestureState) => this.onReleaseBlock(evt, gestureState),
     onPanResponderTerminate: (evt, gestureState) => this.onReleaseBlock(evt, gestureState),
   });
-  
   scrollView = React.createRef();
   scrollOffset = { x: 0, y: 0 };
   latestMove = { x: 0, y: 0 };
-  autoScrollTimer = null;
-
+  keepScrolling = null;
   activation = new Animated.Value(0);
+  activationAnimation = null;
 
   getPositionByOrder = (orderIndex) => {
     const { columns, rowHeight } = this.props;
@@ -69,9 +66,9 @@ class SortableGrid extends PureComponent {
     const override = this.props.onActivateDrag(key, this);
     if (override) return;
     this.panCapture = true;
-    this.setState({ activeBlockKey: key }); // NOTE: we are not guaranteed that state.activeBlockKey will be set before onGrantBlock gets called
+    this.setState({ activeBlockKey: key });
     this._activeBlockKey = key;
-    this.activeAnimationRaf = this.props.activeAnimation(this.activation, this);
+    this.runAnimation();
   };
 
   onGrantBlock = (evt, gestureState) => {
@@ -96,8 +93,8 @@ class SortableGrid extends PureComponent {
     this.latestMove = { x: gestureState.moveX, y: gestureState.moveY };
     this.cells[this._activeBlockKey].position.setValue(actualDragPosition);
     this.moveBlock(actualDragPosition);
-    if (!this.autoScrollTimer) {
-      this.handleAutoScroll();
+    if (!this.keepScrolling) {
+      this.runAutoScroll();
     }
   };
 
@@ -116,7 +113,7 @@ class SortableGrid extends PureComponent {
     if (override) return;
     this._activeBlockKey = null;
     this.setState({ activeBlockKey: null });
-    if (this.activeAnimationRaf) cancelAnimationFrame(this.activeAnimationRaf);
+    this.stopAnimation();
   };
 
   moveBlock = (currentPosition) => {
@@ -149,56 +146,59 @@ class SortableGrid extends PureComponent {
     };
     this.cells[this._activeBlockKey].position.setValue(actualDragPosition);
     this.moveBlock(actualDragPosition);
-    if (!this.autoScrollTimer) {
-      this.handleAutoScroll();
+    if (!this.keepScrolling) {
+      this.runAutoScroll();
     }
   };
 
-  handleAutoScroll = () => {
+  runAutoScroll = () => {
     if (!this.panCapture || !this.layout) {
       this.stopAutoScroll();
       return;
     }
     const relY = this.latestMove.y - (this.layout.y);
-    let diff = 0;
-    if (relY < this.props.rowHeight && this.scrollOffset.y > 0) {
-      diff = -15;
-    } 
-    else if (relY > this.viewPortHeight - this.props.rowHeight && (this.scrollOffset.y + this.viewPortHeight) < this.layout.height) {
-      diff = 15;
-    }
-    if (diff !== 0) {
-      this.scrollView.current.scrollTo({ y: this.scrollOffset.y + diff, animated: false });
-      this.autoScrollTimer = requestAnimationFrame(this.handleAutoScroll);
+    const scrollUp = relY < this.props.rowHeight && this.scrollOffset.y > 0;
+    const scrollDown = relY > (this.viewPortHeight - this.props.rowHeight) && (this.scrollOffset.y + this.viewPortHeight) < this.layout?.height;
+    // @ts-ignore
+    const scrollBy = (scrollUp * -1 + scrollDown * 1) * this.props.scrollStep; 
+    if (scrollBy !== 0) {
+      this.scrollView.current.scrollTo({ y: this.scrollOffset.y + scrollBy, animated: false });
+      this.keepScrolling = requestAnimationFrame(this.runAutoScroll);
     } else {
       this.stopAutoScroll();
     }
   };
-
-  stopAnimation() {
-    if (this.activation && this.activation.stopAnimation) this.activation.stopAnimation();
-  }
     
   stopAutoScroll = () => {
-    cancelAnimationFrame(this.autoScrollTimer);
-    this.autoScrollTimer = null;
+    cancelAnimationFrame(this.keepScrolling);
+    this.keepScrolling = null;
   };
+
+  runAnimation() {
+    this.activationAnimation = this.props.animateActiveStyle(this.activation, this);
+  }
+
+  stopAnimation() {
+    if (this.activationAnimation) cancelAnimationFrame(this.activationAnimation);
+    if (this.activation && this.activation.resetAnimation) this.activation.resetAnimation();
+  }
 
   componentWillUnmount() {
     this.stopAnimation();
     this.stopAutoScroll();
-    if (this.activeAnimationRaf) cancelAnimationFrame(this.activeAnimationRaf);
   }
 
-  render = () => {
+  onScrollViewLayout = ({ nativeEvent }) => {
+    this.viewPortHeight = nativeEvent.layout.height;
+  };
+
+  render() {
     const { data, columns, rowHeight } = this.props;
-
     const gridStyle = [ styles.grid, { height: Math.ceil(data.length / columns) * rowHeight } ];
-
     return (
       <ScrollView
         ref={this.scrollView}
-        onLayout={(e) => { this.viewPortHeight = e.nativeEvent.layout.height; }} 
+        onLayout={this.onScrollViewLayout} 
         onScroll={this.onScroll}
         scrollEnabled={!this.panCapture}
         showsVerticalScrollIndicator={false}
@@ -206,7 +206,7 @@ class SortableGrid extends PureComponent {
         scrollEventThrottle={16}
         removeClippedSubviews={true}
       >
-        <View style={gridStyle} onLayout={this.onLayout} {...this.panResponder.panHandlers}>
+        <View style={gridStyle} onLayout={this.onLayout} { ...this.panResponder.panHandlers }>
           {this.state.blockWidth ? data.map((item) => (
             <Cell
               ref={(el) => (this.cells[item.key] = el)}
@@ -255,18 +255,12 @@ SortableGrid.defaultProps = {
     transform: [ { rotate: animation.interpolate({ inputRange: [0, 360], outputRange: [ '0deg', '360deg' ] }) } ],
     elevation: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
   }),
-  activeAnimation: (animation) => {
-    return requestAnimationFrame(() => {
-      animation.setValue(10);
-      Animated.spring(animation, {
-        toValue: 0,
-        velocity: 2000,
-        tension: 2000,
-        friction: 5,
-        useNativeDriver: true,
-      }).start();
-    });
-  }
+  animateActiveStyle: (animation) => requestAnimationFrame(() => {
+    animation.setValue(10);
+    Animated.spring(animation, { toValue: 0, velocity: 2000, tension: 2000, friction: 5, useNativeDriver: true }).start();
+  }),
+  scrollStep: 15,
+  scrollViewOverrides: () => ({}),
 };
 
 export default SortableGrid;
