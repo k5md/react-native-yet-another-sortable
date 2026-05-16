@@ -75,7 +75,7 @@ export class Cell extends React.PureComponent {
         <TouchableWithoutFeedback
           style={styles.container}
           delayLongPress={activationThreshold}
-          onLongPress={item.inactive ? noop : this.onActivate}
+          onLongPress={item.dragDisabled ? noop : this.onActivate}
         >
           <View style={styles.cell}>
             <View style={styles.container}>{renderItem(item)}</View>

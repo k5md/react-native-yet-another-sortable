@@ -58,6 +58,8 @@ export interface SortableGridProps<T extends Item> {
   animateActiveStyle: (animation: Animated.Value) => number | undefined,
   /** number of pixels to autoscroll when item is held close to upper or lower boundary of container */
   scrollStep: number,
+  /** set of keys for cells that will not be swapped with others */
+  pinned: Set<React.Key>,
 }
 
 /**

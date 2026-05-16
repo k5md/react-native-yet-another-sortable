@@ -57,7 +57,7 @@ export class SortableGrid extends PureComponent {
       const position = this.getPositionByOrder(i);
       if (position && this.cells[key]) {
         this.cells[key].stopAnimation();
-        this.cells[key].runAnimation({ position, hide: true });
+        this.cells[key].runAnimation({ position });
       }
     }
   }
@@ -117,13 +117,13 @@ export class SortableGrid extends PureComponent {
   };
 
   moveBlock = (currentPosition) => {
-    const { items, rowHeight, columns } = this.props;
+    const { items, rowHeight, columns, pinned } = this.props;
     const { blockWidth } = this.state;
     const row = clamp(Math.round(currentPosition.y / rowHeight), 0, Math.ceil(items.length / columns) - 1);
     const col = clamp(Math.round(currentPosition.x / blockWidth), 0, columns - 1);
     const targetOrder = row * columns + col;
     const closest = this.orderToKey[targetOrder];
-    if (typeof closest === 'undefined' || closest === this._activeBlockKey) return;
+    if (typeof closest === 'undefined' || closest === this._activeBlockKey || pinned.has(closest)) return;
     const position = this.getPositionByKey(this._activeBlockKey);
     this.cells[closest].runAnimation({ position, duration: this.props.transitionDuration });
     const [ aKey, bKey ] = [ this._activeBlockKey, closest ];
@@ -260,4 +260,5 @@ SortableGrid.defaultProps = {
     Animated.spring(animation, { toValue: 0, velocity: 2000, tension: 2000, friction: 5, useNativeDriver: true }).start();
   }),
   scrollStep: 15,
+  pinned: new Set(),
 };
