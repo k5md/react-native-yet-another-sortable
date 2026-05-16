@@ -252,11 +252,12 @@ SortableGrid.defaultProps = {
   onActivateDrag: noop,
   onDeactivateDrag: noop,
   getActiveStyle: (animation) => ({
-    transform: [ { rotate: animation.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] }) } ],
-    elevation: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
+    transform: [ { rotate: animation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '1deg'] }) } ],
+    elevation: 10,
+    zIndex: 1,
   }),
   animateActiveStyle: (animation) => requestAnimationFrame(() => {
-    animation.setValue(10);
+    animation.setValue(1);
     Animated.spring(animation, { toValue: 0, velocity: 2000, tension: 2000, friction: 5, useNativeDriver: true }).start();
   }),
   scrollStep: 15,

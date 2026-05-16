@@ -49,8 +49,6 @@ export class Cell extends React.PureComponent {
   getStyle() {
     const { rowHeight, active, activationProgress, getActiveStyle, blockWidth } = this.props;
     const style = {
-      zIndex: active ? 1 : 0,
-      elevation: active ? 1 : 0,
       height: rowHeight,
       width: blockWidth,
       transform: this.position.getTranslateTransform(),
