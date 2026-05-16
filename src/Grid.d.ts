@@ -69,9 +69,9 @@ export interface SortableGridProps<T extends Item> {
  * `animateActiveStyle` and `getActiveStyle` props.
  *
  * ```
- * import React, { useRef, useCallback } from 'react';
- * import { View, TouchableOpacity, Text } from 'react-native';
- * import { Stopwatch, StopwatchTransitions } from 'react-native-yet-another-stopwatch-timer';
+ * import React, { useState } from 'react';
+ * import { View, Text } from 'react-native';
+ * import { SortableGrid } from 'react-native-yet-another-sortable';
  * const Component = () => {
  *   const [ items, setItems ] = useState(Array.from({ length: 5 }, (_, i) => ({ value: i, key: i })));
  *   const [ order, setOrder ] = useState(items.map(({ key }) => key));
