@@ -160,7 +160,7 @@ export class SortableGrid extends PureComponent {
     const scrollUp = relY < this.props.rowHeight && this.scrollOffset.y > 0;
     const scrollDown = relY > (this.viewPortHeight - this.props.rowHeight) && (this.scrollOffset.y + this.viewPortHeight) < this.layout?.height;
     // @ts-ignore
-    const scrollBy = (scrollUp * -1 + scrollDown * 1) * this.props.scrollStep; 
+    const scrollBy = (scrollUp * -1 + scrollDown * 1) * this.props.scrollStep;
     if (scrollBy !== 0) {
       this.scrollView.current.scrollTo({ y: this.scrollOffset.y + scrollBy, animated: false });
       this.keepScrolling = requestAnimationFrame(this.runAutoScroll);
@@ -168,7 +168,7 @@ export class SortableGrid extends PureComponent {
       this.stopAutoScroll();
     }
   };
-    
+
   stopAutoScroll = () => {
     cancelAnimationFrame(this.keepScrolling);
     this.keepScrolling = null;
@@ -198,7 +198,7 @@ export class SortableGrid extends PureComponent {
     return (
       <ScrollView
         ref={this.scrollView}
-        onLayout={this.onScrollViewLayout} 
+        onLayout={this.onScrollViewLayout}
         onScroll={this.onScroll}
         scrollEnabled={!this.panCapture}
         showsVerticalScrollIndicator={false}
@@ -223,7 +223,7 @@ export class SortableGrid extends PureComponent {
               grid={this}
               activationThreshold={this.props.activationThreshold}
             />
-        )) : null}
+          )) : null}
         </View>
       </ScrollView>
     );

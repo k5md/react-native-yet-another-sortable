@@ -1,101 +1,58 @@
 # react-native-yet-another-sortable
 
-[![Build Status](https://travis-ci.com/k5md/react-native-yet-another-sortable.svg?branch=release)](https://travis-ci.com/k5md/react-native-yet-another-sortable)
-
-A sortable scrollable grid / list component for React Native.
+## Features
+A sortable scrollable grid / list component for React Native, essentially based on `react-native-sortable-grid`.
 * Change number of columns and row height on the fly
 * Much better performance (especially in debug, compared to alternatives)
-* Fast updates
 * Controllable order
 * Auto-scroll when dragged item is close to the container's border
-Essentially based on react-native-sortable-grid, it has some improvements and changes, that made me publish it as a separate package instead of making a PR.
 
 <p align="center">
-  <img src="https://s7.gifyu.com/images/rnyas.gif">
+  <img src="assets/sortable-grid-illustration.gif" alt="Demo" width="320">
 </p>
 
-## Getting Started
-### Installation
+## Installation
 ```
 npm install react-native-yet-another-sortable --save
 ```
-### Usage
+
+## Usage
 Check out [example project](https://github.com/k5md/react-native-yet-another-sortable/tree/master/example).
- 
-```javascript
-import React, { useState, useCallback } from 'react';
-import SortableGrid from 'react-native-yet-another-sortable';
 
-const Example = () => {
-  const [data] = useState([
-    { value: 0, key: 'key0' },
-    { value: 1, key: 'key1' },
-    { value: 2, key: 'key2' },
-  ]);
+Or check a minimal example to copy-paste:
 
-  const [order, setOrder] = useState(['key2', 'key1', 'key0']);
-
-  const renderItem = useCallback(({ value, color }) => (
-    <View style={{ flex: 1 }}>
-      <Text>{value}</Text>
-    </View>
-  ), []);
-
+### Minimal SortableGrid example
+```jsx
+import React, { useState } from 'react';
+import { View, Text } from 'react-native';
+import { SortableGrid } from 'react-native-yet-another-sortable';
+const Component = () => {
+  const [ items, setItems ] = useState(Array.from({ length: 5 }, (_, i) => ({ value: i, key: i })));
+  const [ order, setOrder ] = useState(items.map(({ key }) => key));
   return (
-    <View style={{ flex: 1 }}>
-      <SortableGrid
-        order={order}
-        data={data}
-        renderItem={renderItem}
-        onDeactivateDrag={setOrder}
-      />
-    </View>
+    <SortableGrid
+      items={items}
+      order={order}
+      renderItem={({ value }) => (<View><Text>{value}</Text></View>)}
+      onDeactivateDrag={(order) => setOrder(order)}
+    />
   );
 };
 ```
 
-### Props
-| parameter  | type   | required | description |
-| :--------  | :----  | :------- | :---------- |
-| order | array of string keys | yes | array of data key properties used to determine entry order |
-| data | array of objects with key property | yes | array of items to be passed to renderItem |
-| rowHeight | number | no | row height |
-| columns | number | no | number of columns per row |
-| activationTreshold | number | no | time in ms required to activate drag on hold |
-| transitionDuration | number | no | time in ms required to move cell to its position on release |
-| renderItem | function | yes | render function for each entry, is passed a data item |
-
-### Event props
-| parameter  | type   | required | description |
-| :--------  | :----  | :------- | :---------- |
-| onActivateDrag | (key, grid) => void | no |  Will execute after one holds the item for activateTreshold, before onGrantBlock |
-| onGrantBlock | (event, gestureState, grid) => void | no | Will execute on drag start |
-| onMoveBlock | (event, gestureState, grid) => void | no |  Will execute on each move |
-| onReleaseBlock | (event, gestureState, grid) => void | no |  Will execute on drag release |
-| onDeactivateDrag | (order, grid) => void | no |  Will execute on active item drop, after onReleaseBlock, with new order as an argument |
-
-### Data item props
-| parameter  | type   | required | description |
-| :--------  | :----  | :------- | :---------- |
-| inactive | boolean | no      | Makes block not draggable |
-| key | string | yes | key used to order items
-
 ## Development
 In order to develop the application or build android .apk from the sources one should:
 1. Clone this repository
-2. Install package dependencies with `npm install`
+2. Navigate to parent directory and install dev dependencies with `npm ci` for linting `npm run lint` and typescript typechecking `npm run typecheck`.
 3. Navigate to example folder: `cd example`
-3. Install example project dependencies `npm install`
-3. Run Metro bundler with `react-native start`
-4. Connect an emulator or physical device via adb, like this (tested with [mEMU](https://www.memuplay.com/)):
+4. Install example project dependencies `npm ci`, since library has only peer dependencies
+5. Run Metro bundler with `npm run start`
+6. Connect physical device or an emulator via adb, like this (tested with [mEMU](https://www.memuplay.com/)):
 	- `adb connect 127.0.0.1:21503`
 	- `adb reverse tcp:8081 tcp:8081`
-5. Build and watch with `react-native run-android`, changes from src directory are picked automatically because of example's metro and babel configurations.
+7. Build and watch with `npm run-android`, changes from src directory are picked automatically because of example metro and babel configurations.
+
+**Note:** example project is configured in [a way](./example/metro.config.js), that may cause issues if you save anything as a regular dependency in parent library
 
 ## Contributions
 PR are always welcome!
-
-## Todos
-* Better scroll-on-drag behaviour (smooth scroll without ugly timeouts and large scroll results in the dragged block trembling)
-* Refactoring while perserving the performance
-* Actual tests

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native'; 
+import { View, Text } from 'react-native';
 import { render, act } from '@testing-library/react-native';
 import { uniqueId, range } from 'lodash';
 import { SortableGrid } from 'react-native-yet-another-sortable';
@@ -25,10 +25,10 @@ describe('SortableGrid tests', () => {
 
     const gridRef = React.createRef();
     const { getAllByText } = render(
-      <SortableGrid 
+      <SortableGrid
         ref={gridRef}
-        items={items} 
-        order={order} 
+        items={items}
+        order={order}
         renderItem={renderItem}
       />
     );
@@ -36,7 +36,7 @@ describe('SortableGrid tests', () => {
     act(() => {
       gridRef.current.onLayout({ nativeEvent: { layout: { width: 400, height: 2000, x: 0, y: 0 } } });
     });
-    
+
     act(() => {
       jest.runAllTimers();
     });

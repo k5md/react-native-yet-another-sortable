@@ -67,7 +67,7 @@ export class Cell extends React.PureComponent {
   onActivate = () => {
     this.props.onActivate(this.props.item.key);
   };
-  
+
   render() {
     const { item, activationThreshold, renderItem } = this.props;
     return (
