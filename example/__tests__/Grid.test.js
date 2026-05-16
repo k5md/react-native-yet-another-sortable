@@ -13,7 +13,7 @@ describe('SortableGrid tests', () => {
     jest.useRealTimers();
   });
 
-  test('exists', async () => {
+  test('renders cells', async () => {
     const textPrefix = 'cell_text';
     const items = range(5).map(() => ({ value: uniqueId(textPrefix), key: uniqueId() }));
     const order = items.map(({ key }) => key);
