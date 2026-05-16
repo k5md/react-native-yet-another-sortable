@@ -111,6 +111,7 @@ const styles = StyleSheet.create({
   },
   controls: {
     flex: 1,
+    margin: 5,
     justifyContent: 'space-evenly',
   },
   controls__entry: {
