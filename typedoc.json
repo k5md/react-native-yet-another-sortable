@@ -21,5 +21,12 @@
   ],
   "externalSymbolLinkMappings": {
     "@types/react": { "React.ReactNode": "#" }
+  },
+  "interfacePropertiesFormat": "table",
+  "typeAliasPropertiesFormat": "table",
+  "tableColumnSettings": {
+    "hideDefaults": true,
+    "hideInherited": true,
+    "hideModifiers": true
   }
 }

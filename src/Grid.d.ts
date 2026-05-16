@@ -64,9 +64,9 @@ export interface SortableGridProps<T extends Item> {
 
 /**
  * Renders `items` as grid by passing each item to `renderItem`. Each item must have unique `key` property.
- * Cell order must be provided in `order` array of keys. After user rearranges grid cells by dragging,
- * `onDeactivateDrag` callback gets called with updated order as an argument. Activation animation can be customized with
- * `animateActiveStyle` and `getActiveStyle` props.
+ * Cell order must be provided in `order` array of keys.
+ * After user rearranges grid cells by dragging, `onDeactivateDrag` callback gets called with updated order as an argument.
+ * Activation animation can be customized with `animateActiveStyle` and `getActiveStyle` props.
  *
  * ```
  * import React, { useState } from 'react';
