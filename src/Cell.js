@@ -47,7 +47,7 @@ export class Cell extends React.PureComponent {
   }
 
   getStyle() {
-    const { rowHeight, active, activation, getActiveStyle, blockWidth } = this.props;
+    const { rowHeight, active, activationProgress, getActiveStyle, blockWidth } = this.props;
     const style = {
       zIndex: active ? 1 : 0,
       elevation: active ? 1 : 0,
@@ -57,7 +57,7 @@ export class Cell extends React.PureComponent {
       opacity: this.opacity,
     };
     if (active && getActiveStyle) {
-      const { transform = [], ...rest } = getActiveStyle(activation);
+      const { transform = [], ...rest } = getActiveStyle(activationProgress);
       style.transform.push(...transform);
       return { ...style, ...rest };
     }
@@ -69,12 +69,12 @@ export class Cell extends React.PureComponent {
   };
   
   render() {
-    const { item, activationTreshold, renderItem } = this.props;
+    const { item, activationThreshold, renderItem } = this.props;
     return (
       <Animated.View style={[ styles.animatedContainer, this.getStyle() ]}>
         <TouchableWithoutFeedback
           style={styles.container}
-          delayLongPress={activationTreshold}
+          delayLongPress={activationThreshold}
           onLongPress={item.inactive ? noop : this.onActivate}
         >
           <View style={styles.cell}>

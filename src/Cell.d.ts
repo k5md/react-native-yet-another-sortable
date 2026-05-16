@@ -1,11 +1,19 @@
-Cell.propTypes = {
-  item: shape({ key: string }).isRequired,
-  renderItem: func.isRequired,
-  activationTreshold: number,
-  onActivate: func,
-  height: number,
-  width: number,
-  active: bool,
-  position: oneOfType([object, bool]),
-  rotation: oneOfType([object, bool]),
-};
+import * as React from 'react';
+import { SortableGrid, SortableGridProps } from './Grid';
+import { Item } from './shared';
+
+export interface CellProps<T extends Item> {
+  item: T,
+  onActivate: (key: React.Key) => void
+  renderItem: (item: T) => React.ReactNode,
+  rowHeight: number,
+  active: boolean,
+  getActiveStyle: (animation: Animated.Value) => React.CSSProperties | undefined,
+  activationProgress: Animated.Value,
+  columns: number,
+  blockWidth: number,
+  grid: SortableGrid<T>,
+  activationThreshold: number,
+}
+
+export class Cell<T extends Item = any> extends React.PureComponent<CellProps<T>> {}

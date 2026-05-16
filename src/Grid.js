@@ -3,7 +3,7 @@ import { Animated, PanResponder, StyleSheet, View, ScrollView } from 'react-nati
 import { noop, clamp } from './utils';
 import { Cell } from './Cell';
 
-class SortableGrid extends PureComponent {
+export class SortableGrid extends PureComponent {
   keyToOrder = {};
   orderToKey = {};
   cells = {};
@@ -28,7 +28,7 @@ class SortableGrid extends PureComponent {
   scrollOffset = { x: 0, y: 0 };
   latestMove = { x: 0, y: 0 };
   keepScrolling = null;
-  activation = new Animated.Value(0);
+  activationProgress = new Animated.Value(0);
   activationAnimation = null;
 
   getPositionByOrder = (orderIndex) => {
@@ -43,9 +43,9 @@ class SortableGrid extends PureComponent {
   getPositionByKey = (key) => this.getPositionByOrder(this.keyToOrder[key]);
 
   componentDidUpdate(prevProps) {
-    const { rowHeight, columns, data, order } = this.props;
+    const { rowHeight, columns, items, order } = this.props;
     if (columns !== prevProps.columns || rowHeight !== prevProps.rowHeight) {
-      this.layout.height = rowHeight * Math.ceil(data.length / columns);
+      this.layout.height = rowHeight * Math.ceil(items.length / columns);
       this.setState({ blockWidth: Math.floor(this.layout.width / columns) });
       return;
     }
@@ -117,9 +117,9 @@ class SortableGrid extends PureComponent {
   };
 
   moveBlock = (currentPosition) => {
-    const { data, rowHeight, columns } = this.props;
+    const { items, rowHeight, columns } = this.props;
     const { blockWidth } = this.state;
-    const row = clamp(Math.round(currentPosition.y / rowHeight), 0, Math.ceil(data.length / columns) - 1);
+    const row = clamp(Math.round(currentPosition.y / rowHeight), 0, Math.ceil(items.length / columns) - 1);
     const col = clamp(Math.round(currentPosition.x / blockWidth), 0, columns - 1);
     const targetOrder = row * columns + col;
     const closest = this.orderToKey[targetOrder];
@@ -175,12 +175,12 @@ class SortableGrid extends PureComponent {
   };
 
   runAnimation() {
-    this.activationAnimation = this.props.animateActiveStyle(this.activation, this);
+    this.activationAnimation = this.props.animateActiveStyle(this.activationProgress, this);
   }
 
   stopAnimation() {
     if (this.activationAnimation) cancelAnimationFrame(this.activationAnimation);
-    if (this.activation && this.activation.resetAnimation) this.activation.resetAnimation();
+    if (this.activationProgress && this.activationProgress.resetAnimation) this.activationProgress.resetAnimation();
   }
 
   componentWillUnmount() {
@@ -193,8 +193,8 @@ class SortableGrid extends PureComponent {
   };
 
   render() {
-    const { data, columns, rowHeight } = this.props;
-    const gridStyle = [ styles.grid, { height: Math.ceil(data.length / columns) * rowHeight } ];
+    const { items, columns, rowHeight } = this.props;
+    const gridStyle = [ styles.grid, { height: Math.ceil(items.length / columns) * rowHeight } ];
     return (
       <ScrollView
         ref={this.scrollView}
@@ -207,9 +207,9 @@ class SortableGrid extends PureComponent {
         removeClippedSubviews={true}
       >
         <View style={gridStyle} onLayout={this.onLayout} { ...this.panResponder.panHandlers }>
-          {this.state.blockWidth ? data.map((item) => (
+          {this.state.blockWidth ? items.map((item) => (
             <Cell
-              ref={(el) => (this.cells[item.key] = el)}
+              ref={(el) => { this.cells[item.key] = el; }}
               key={item.key}
               item={item}
               onActivate={this.onActivateDrag}
@@ -217,10 +217,11 @@ class SortableGrid extends PureComponent {
               rowHeight={this.props.rowHeight}
               active={this.state.activeBlockKey === item.key}
               getActiveStyle={this.props.getActiveStyle}
-              activation={this.activation}
+              activationProgress={this.activationProgress}
               columns={this.props.columns}
               blockWidth={this.state.blockWidth}
               grid={this}
+              activationThreshold={this.props.activationThreshold}
             />
         )) : null}
         </View>
@@ -250,7 +251,6 @@ SortableGrid.defaultProps = {
   onReleaseBlock: noop,
   onActivateDrag: noop,
   onDeactivateDrag: noop,
-  onCancelBlock: noop,
   getActiveStyle: (animation) => ({
     transform: [ { rotate: animation.interpolate({ inputRange: [0, 360], outputRange: [ '0deg', '360deg' ] }) } ],
     elevation: animation.interpolate({ inputRange: [0, 1], outputRange: [0, 10] }),
@@ -260,7 +260,4 @@ SortableGrid.defaultProps = {
     Animated.spring(animation, { toValue: 0, velocity: 2000, tension: 2000, friction: 5, useNativeDriver: true }).start();
   }),
   scrollStep: 15,
-  scrollViewOverrides: () => ({}),
 };
-
-export default SortableGrid;

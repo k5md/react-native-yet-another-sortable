@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, Text, Button } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { shuffle, uniqueId, range, random, dropRight } from 'lodash';
-import SortableGrid from 'react-native-yet-another-sortable';
+import { SortableGrid } from 'react-native-yet-another-sortable';
 
 export const getColor = () => {
   const r = random(100, 200);
@@ -12,31 +12,31 @@ export const getColor = () => {
 };
 
 const App = () => {
-  const [data, setData] = useState(() =>
+  const [items, setData] = useState(() =>
     range(100).map((value) => ({
       value,
       key: uniqueId('k_'),
       color: getColor(),
     })),
   );
-  const [order, setOrder] = useState(() => data.map(({ key }) => key));
+  const [order, setOrder] = useState(() => items.map(({ key }) => key));
   const [rowHeight, setRowHeight] = useState(50);
   const [columns, setColumns] = useState(10);
 
   const addEntry = useCallback(() => {
     const key = uniqueId('k_');
-    setData(data.concat({ value: random(0, 100), color: getColor(), key }));
+    setData(items.concat({ value: random(0, 100), color: getColor(), key }));
     setOrder(order.concat(key));
-  }, [data, order]);
+  }, [items, order]);
 
   const deleteEntry = useCallback(() => {
     if (!order.length) {
       return;
     }
     const keyToRemove = order[order.length - 1];
-    setData(data.filter(({ key }) => key !== keyToRemove));
+    setData(items.filter(({ key }) => key !== keyToRemove));
     setOrder(dropRight(order, 1));
-  }, [data, order]);
+  }, [items, order]);
 
   const renderItem = useCallback(
     ({ value, color }) => (
@@ -52,7 +52,7 @@ const App = () => {
       <View style={styles.grid}>
         <SortableGrid
           order={order}
-          data={data}
+          items={items}
           renderItem={renderItem}
           columns={columns}
           rowHeight={rowHeight}
@@ -99,7 +99,6 @@ const styles = StyleSheet.create({
   block: {
     flex: 1,
     margin: 5,
-    borderRadius: 5,
     justifyContent: 'center',
     alignItems: 'center',
   },

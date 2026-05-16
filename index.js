@@ -1,3 +1,2 @@
-import SortableGrid from './src/Grid';
-
-export default SortableGrid;
+export { Cell } from './src/Cell';
+export { SortableGrid } from './src/Grid';
