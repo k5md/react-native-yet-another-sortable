@@ -8,7 +8,7 @@ A sortable scrollable grid / list component for React Native, essentially based 
 * Auto-scroll when dragged item is close to the container's border
 
 <p align="center">
-  <img src="assets/sortable-grid-illustration.gif" alt="Demo" width="320">
+  <img src="assets/sortable-illustration.gif" alt="Demo" width="320">
 </p>
 
 ## Installation
