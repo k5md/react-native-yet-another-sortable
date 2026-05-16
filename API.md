@@ -31,13 +31,14 @@ const Component = () => {
 
 #### Extends
 
-- `PureComponent`\<[`SortableGridProps`](#sortablegridprops)\<`T`\>\>
+- `PureComponent`\<[`SortableGridProps`](#sortablegridprops)\<`T`, `K`\>\>
 
 #### Type Parameters
 
 | Type Parameter |
 | ------ |
 | `T` *extends* [`Item`](#item) |
+| `K` *extends* `React.Key` |
 
 #### Constructors
 
@@ -46,7 +47,7 @@ const Component = () => {
 ##### Constructor
 
 ```ts
-new SortableGrid<T>(props: SortableGridProps): SortableGrid<T>;
+new SortableGrid<T, K>(props: SortableGridProps): SortableGrid<T, K>;
 ```
 
 ###### Parameters
@@ -57,18 +58,18 @@ new SortableGrid<T>(props: SortableGridProps): SortableGrid<T>;
 
 ###### Returns
 
-[`SortableGrid`](#sortablegrid)\<`T`\>
+[`SortableGrid`](#sortablegrid)\<`T`, `K`\>
 
 ###### Inherited from
 
 ```ts
-React.PureComponent<SortableGridProps<T>>.constructor
+React.PureComponent<SortableGridProps<T, K>>.constructor
 ```
 
 ##### Constructor
 
 ```ts
-new SortableGrid<T>(props: SortableGridProps, context: any): SortableGrid<T>;
+new SortableGrid<T, K>(props: SortableGridProps, context: any): SortableGrid<T, K>;
 ```
 
 ###### Parameters
@@ -80,12 +81,12 @@ new SortableGrid<T>(props: SortableGridProps, context: any): SortableGrid<T>;
 
 ###### Returns
 
-[`SortableGrid`](#sortablegrid)\<`T`\>
+[`SortableGrid`](#sortablegrid)\<`T`, `K`\>
 
 ###### Inherited from
 
 ```ts
-React.PureComponent<SortableGridProps<T>>.constructor
+React.PureComponent<SortableGridProps<T, K>>.constructor
 ```
 
 #### Properties
@@ -95,7 +96,7 @@ React.PureComponent<SortableGridProps<T>>.constructor
 ##### defaultProps
 
 ```ts
-static defaultProps: Partial<Omit<SortableGridProps<any>, "renderItem" | "items" | "order">>;
+static defaultProps: Partial<Omit<SortableGridProps<any, any>, "renderItem" | "items" | "order">>;
 ```
 
 ## Interfaces
@@ -128,6 +129,7 @@ static defaultProps: Partial<Omit<SortableGridProps<any>, "renderItem" | "items"
 | Type Parameter |
 | ------ |
 | `T` *extends* [`Item`](#item) |
+| `K` *extends* `React.Key` |
 
 #### Properties
 
@@ -138,12 +140,12 @@ static defaultProps: Partial<Omit<SortableGridProps<any>, "renderItem" | "items"
 | <a id="property-columns"></a> `columns` | `number` | number of columns per row |
 | <a id="property-getactivestyle"></a> `getActiveStyle` | (`animation`: `Value`) => `CSSProperties` | provides styles for cell from `animation`, use it to achieve custom activation effects. If not provided, defaults to rotation and elevation: `(animation) => ({ transform: [ { rotate: animation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '1deg'] }) } ], elevation: 10, zIndex: 1, })` |
 | <a id="property-items"></a> `items` | `T`[] | array of items each to be passed to `renderItem` |
-| <a id="property-onactivatedrag"></a> `onActivateDrag` | (`key`: `Key`, `gridInstance`: [`SortableGrid`](#sortablegrid)\<`T`\>) => `any` | will execute after one holds the item for `activateTreshold` ms, before `onGrantBlock`, return truthy value to override default behaviour |
-| <a id="property-ondeactivatedrag"></a> `onDeactivateDrag` | (`order`: `Key`[], `gridInstance`: [`SortableGrid`](#sortablegrid)\<`T`\>) => `any` | will execute on active item drop, after `onReleaseBlock`, with new order array as argument, return truthy value to override default behaviour |
-| <a id="property-ongrantblock"></a> `onGrantBlock` | (...`args`: \[`GestureResponderEvent`, `PanResponderGestureState`, [`SortableGrid`](#sortablegrid)\<`T`\>\]) => `any` | will execute on drag start, return truthy value to override default behaviour |
-| <a id="property-onmoveblock"></a> `onMoveBlock` | (...`args`: \[`GestureResponderEvent`, `PanResponderGestureState`, [`SortableGrid`](#sortablegrid)\<`T`\>\]) => `any` | will execute on every move, return truthy value to override default behaviour |
-| <a id="property-onreleaseblock"></a> `onReleaseBlock` | (...`args`: \[`GestureResponderEvent`, `PanResponderGestureState`, [`SortableGrid`](#sortablegrid)\<`T`\>\]) => `any` | will execute on drag release, return truthy value to override default behaviour |
-| <a id="property-order"></a> `order` | `Key`[] | array of item `key` properties specifying items order in grid |
+| <a id="property-onactivatedrag"></a> `onActivateDrag` | (`key`: `Key`, `gridInstance`: [`SortableGrid`](#sortablegrid)\<`T`, `K`\>) => `any` | will execute after one holds the item for `activateTreshold` ms, before `onGrantBlock`, return truthy value to override default behaviour |
+| <a id="property-ondeactivatedrag"></a> `onDeactivateDrag` | (`order`: `K`[], `gridInstance`: [`SortableGrid`](#sortablegrid)\<`T`, `K`\>) => `any` | will execute on active item drop, after `onReleaseBlock`, with new order array as argument, return truthy value to override default behaviour |
+| <a id="property-ongrantblock"></a> `onGrantBlock` | (...`args`: \[`GestureResponderEvent`, `PanResponderGestureState`, [`SortableGrid`](#sortablegrid)\<`T`, `K`\>\]) => `any` | will execute on drag start, return truthy value to override default behaviour |
+| <a id="property-onmoveblock"></a> `onMoveBlock` | (...`args`: \[`GestureResponderEvent`, `PanResponderGestureState`, [`SortableGrid`](#sortablegrid)\<`T`, `K`\>\]) => `any` | will execute on every move, return truthy value to override default behaviour |
+| <a id="property-onreleaseblock"></a> `onReleaseBlock` | (...`args`: \[`GestureResponderEvent`, `PanResponderGestureState`, [`SortableGrid`](#sortablegrid)\<`T`, `K`\>\]) => `any` | will execute on drag release, return truthy value to override default behaviour |
+| <a id="property-order"></a> `order` | `K`[] | array of item `key` properties specifying items order in grid |
 | <a id="property-pinned"></a> `pinned` | `Set`\<`Key`\> | set of keys for cells that will not be swapped with others |
 | <a id="property-renderitem"></a> `renderItem` | (`item`: `any`) => [`ReactNode`](#) | render function for each item |
 | <a id="property-rowheight"></a> `rowHeight` | `number` | row height in pixels |
