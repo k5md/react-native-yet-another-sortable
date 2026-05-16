@@ -3,13 +3,13 @@ import { Animated, PanResponderCallbacks } from 'react-native';
 import { CellProps } from './Cell';
 import { Item } from './shared';
 
-export interface SortableGridProps<T extends Item, K extends React.Key = React.Key> {
+export interface SortableGridProps<T, K extends React.Key = React.Key> {
   /** array of items each to be passed to `renderItem` */
-  items: T[],
+  items: (T & Item<K>)[],
   /** array of item `key` properties specifying items order in grid */
   order: K[],
   /** render function for each item */
-  renderItem: (item: any & { key: React.Key }) => React.ReactNode,
+  renderItem: (item: T & Item<K>) => React.ReactNode,
   /** row height in pixels */
   rowHeight: number,
   /** number of columns per row */
@@ -19,7 +19,7 @@ export interface SortableGridProps<T extends Item, K extends React.Key = React.K
   /** time in ms required to move cell to its position on release or swap */
   transitionDuration: number,
   /** will execute after one holds the item for `activateTreshold` ms, before `onGrantBlock`, return truthy value to override default behaviour */
-  onActivateDrag: (key: React.Key, gridInstance: SortableGrid<T, K>) => any,
+  onActivateDrag: (key: K, gridInstance: SortableGrid<T, K>) => any,
   /** will execute on drag start, return truthy value to override default behaviour */
   onGrantBlock: (
     ...args: [ ...Parameters<Required<PanResponderCallbacks>['onPanResponderGrant']>, gridInstance: SortableGrid<T, K> ]
@@ -60,7 +60,7 @@ export interface SortableGridProps<T extends Item, K extends React.Key = React.K
   /** number of pixels to autoscroll when item is held close to upper or lower boundary of container */
   scrollStep: number,
   /** set of keys for cells that will not be swapped with others */
-  pinned: Set<React.Key>,
+  pinned: Set<K>,
 }
 
 /**
@@ -87,6 +87,6 @@ export interface SortableGridProps<T extends Item, K extends React.Key = React.K
  * };
  * ```
  */
-export class SortableGrid<T extends Item = any, K extends React.Key = React.Key> extends React.PureComponent<SortableGridProps<T, K>> {
+export class SortableGrid<T, K extends React.Key = React.Key> extends React.PureComponent<SortableGridProps<T, K>> {
   static defaultProps: Partial<Omit<SortableGridProps<any, any>, 'renderItem' | 'items' | 'order'>>;
 }
