@@ -9,7 +9,7 @@
     "list",
     "performance"
   ],
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Drag-and-drop sortable scrollable grid view for React Native.",
   "main": "index.js",
   "types": "index.d.ts",
